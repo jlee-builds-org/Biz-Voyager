@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import json
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
@@ -139,6 +140,10 @@ class AppSettings(BaseModel):
     google_service_account_json: str | None = None
     google_sheets_timeout_seconds: float = Field(default=20.0)
     google_sheets_connect_timeout_seconds: float = Field(default=5.0)
+    llm_provider: str | None = None
+    llm_base_url: str | None = None
+    llm_api_key: str | None = None
+    llm_model: str | None = None
     gemini_api_key: str | None = None
     gemini_model: str | None = None
     enable_gemini_fallback: bool = False
@@ -172,6 +177,25 @@ class AppSettings(BaseModel):
     company_seed_shadow_max_runtime_seconds: float = Field(default=30.0)
 
 
+def _load_published_llm_backend_config(paths: ProjectPaths) -> dict[str, str]:
+    config_path = paths.config_dir / "published_llm_backend.json"
+    if not config_path.exists():
+        return {}
+    try:
+        payload = json.loads(config_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}
+    if not isinstance(payload, dict):
+        return {}
+    return {str(key): str(value) for key, value in payload.items() if value is not None}
+
+
+def _parse_env_bool(value: str | None, default: bool = False) -> bool:
+    if value is None:
+        return default
+    return value.lower() in {"1", "true", "yes", "y"}
+
+
 @lru_cache(maxsize=1)
 def get_paths(project_root: Path | None = None) -> ProjectPaths:
     paths = ProjectPaths.from_root(project_root or default_project_root())
@@ -183,8 +207,28 @@ def get_paths(project_root: Path | None = None) -> ProjectPaths:
 def get_settings(project_root: Path | None = None) -> AppSettings:
     paths = get_paths(project_root)
     load_dotenv(paths.root / ".env", override=True)
-    enable_gemini_fallback = os.getenv("JOBS_MARKET_V2_ENABLE_GEMINI_FALLBACK", "false").lower() in {"1", "true", "yes", "y"}
-    duplicate_adjudication_raw = os.getenv("JOBS_MARKET_V2_ENABLE_GEMINI_DUPLICATE_ADJUDICATION")
+    llm_defaults = _load_published_llm_backend_config(paths)
+    llm_api_key = os.getenv("JOBS_MARKET_V2_LLM_API_KEY")
+    legacy_llm_api_key = os.getenv("GEMINI_API_KEY")
+    enable_llm_fallback_raw = os.getenv("JOBS_MARKET_V2_ENABLE_LLM_FALLBACK")
+    legacy_enable_llm_fallback_raw = os.getenv("JOBS_MARKET_V2_ENABLE_GEMINI_FALLBACK")
+    if enable_llm_fallback_raw is not None:
+        enable_gemini_fallback = _parse_env_bool(enable_llm_fallback_raw)
+    elif legacy_enable_llm_fallback_raw is not None:
+        enable_gemini_fallback = _parse_env_bool(legacy_enable_llm_fallback_raw)
+    else:
+        enable_gemini_fallback = bool(llm_api_key or legacy_llm_api_key)
+
+    duplicate_adjudication_raw = os.getenv("JOBS_MARKET_V2_ENABLE_LLM_DUPLICATE_ADJUDICATION")
+    if duplicate_adjudication_raw is None:
+        duplicate_adjudication_raw = os.getenv("JOBS_MARKET_V2_ENABLE_GEMINI_DUPLICATE_ADJUDICATION")
+
+    llm_max_calls_per_run = int(
+        os.getenv("JOBS_MARKET_V2_LLM_MAX_CALLS_PER_RUN") or os.getenv("JOBS_MARKET_V2_GEMINI_MAX_CALLS_PER_RUN", "8")
+    )
+    llm_timeout_seconds = float(
+        os.getenv("JOBS_MARKET_V2_LLM_TIMEOUT_SECONDS") or os.getenv("JOBS_MARKET_V2_GEMINI_TIMEOUT_SECONDS", "15")
+    )
     return AppSettings(
         timeout_seconds=float(os.getenv("JOBS_MARKET_V2_TIMEOUT_SECONDS", "20")),
         connect_timeout_seconds=float(os.getenv("JOBS_MARKET_V2_CONNECT_TIMEOUT_SECONDS", "5")),
@@ -201,19 +245,23 @@ def get_settings(project_root: Path | None = None) -> AppSettings:
         google_service_account_json=os.getenv("GOOGLE_SERVICE_ACCOUNT_JSON"),
         google_sheets_timeout_seconds=float(os.getenv("JOBS_MARKET_V2_GOOGLE_SHEETS_TIMEOUT_SECONDS", "20")),
         google_sheets_connect_timeout_seconds=float(os.getenv("JOBS_MARKET_V2_GOOGLE_SHEETS_CONNECT_TIMEOUT_SECONDS", "5")),
-        gemini_api_key=os.getenv("GEMINI_API_KEY"),
+        llm_provider=os.getenv("JOBS_MARKET_V2_LLM_PROVIDER") or llm_defaults.get("provider"),
+        llm_base_url=os.getenv("JOBS_MARKET_V2_LLM_BASE_URL") or llm_defaults.get("base_url"),
+        llm_api_key=llm_api_key,
+        llm_model=os.getenv("JOBS_MARKET_V2_LLM_MODEL") or llm_defaults.get("model"),
+        gemini_api_key=legacy_llm_api_key,
         gemini_model=os.getenv("JOBS_MARKET_V2_GEMINI_MODEL", "gemini-2.5-flash"),
         enable_gemini_fallback=enable_gemini_fallback,
         enable_gemini_duplicate_adjudication=(
-            duplicate_adjudication_raw.lower() in {"1", "true", "yes", "y"}
+            _parse_env_bool(duplicate_adjudication_raw)
             if duplicate_adjudication_raw is not None
             else enable_gemini_fallback
         ),
-        gemini_max_calls_per_run=int(os.getenv("JOBS_MARKET_V2_GEMINI_MAX_CALLS_PER_RUN", "8")),
+        gemini_max_calls_per_run=llm_max_calls_per_run,
         gemini_html_listing_max_calls_per_run=int(os.getenv("JOBS_MARKET_V2_GEMINI_HTML_LISTING_MAX_CALLS_PER_RUN", "180")),
         gemini_duplicate_max_calls_per_run=int(os.getenv("JOBS_MARKET_V2_GEMINI_DUPLICATE_MAX_CALLS_PER_RUN", "8")),
         gemini_role_salvage_max_calls_per_run=int(os.getenv("JOBS_MARKET_V2_GEMINI_ROLE_SALVAGE_MAX_CALLS_PER_RUN", "64")),
-        gemini_timeout_seconds=float(os.getenv("JOBS_MARKET_V2_GEMINI_TIMEOUT_SECONDS", "15")),
+        gemini_timeout_seconds=llm_timeout_seconds,
         job_collection_source_batch_size=int(os.getenv("JOBS_MARKET_V2_JOB_COLLECTION_SOURCE_BATCH_SIZE", "120")),
         job_collection_source_max_batches_per_run=int(os.getenv("JOBS_MARKET_V2_JOB_COLLECTION_SOURCE_MAX_BATCHES_PER_RUN", "2")),
         job_collection_max_runtime_seconds=float(os.getenv("JOBS_MARKET_V2_JOB_COLLECTION_MAX_RUNTIME_SECONDS", "300")),
@@ -222,7 +270,9 @@ def get_settings(project_root: Path | None = None) -> AppSettings:
         company_seed_record_refresh_hours=int(os.getenv("JOBS_MARKET_V2_COMPANY_SEED_RECORD_REFRESH_HOURS", "6")),
         company_seed_catalog_max_passes=int(os.getenv("JOBS_MARKET_V2_COMPANY_SEED_CATALOG_MAX_PASSES", "2")),
         company_seed_catalog_batch_size=int(os.getenv("JOBS_MARKET_V2_COMPANY_SEED_CATALOG_BATCH_SIZE", "10")),
-        company_seed_catalog_max_runtime_seconds=float(os.getenv("JOBS_MARKET_V2_COMPANY_SEED_CATALOG_MAX_RUNTIME_SECONDS", "60")),
+        company_seed_catalog_max_runtime_seconds=float(
+            os.getenv("JOBS_MARKET_V2_COMPANY_SEED_CATALOG_MAX_RUNTIME_SECONDS", "60")
+        ),
         company_seed_catalog_host_limit=int(os.getenv("JOBS_MARKET_V2_COMPANY_SEED_CATALOG_HOST_LIMIT", "25")),
         company_seed_catalog_skip_cooldown_hours=int(os.getenv("JOBS_MARKET_V2_COMPANY_SEED_CATALOG_SKIP_COOLDOWN_HOURS", "24")),
         company_seed_catalog_refresh_hours=int(os.getenv("JOBS_MARKET_V2_COMPANY_SEED_CATALOG_REFRESH_HOURS", "24")),
@@ -234,6 +284,7 @@ def get_settings(project_root: Path | None = None) -> AppSettings:
         company_seed_invalid_max_rows=int(os.getenv("JOBS_MARKET_V2_COMPANY_SEED_INVALID_MAX_ROWS", "5000")),
         company_seed_shadow_batch_size=int(os.getenv("JOBS_MARKET_V2_COMPANY_SEED_SHADOW_BATCH_SIZE", "200")),
         company_seed_shadow_max_batches_per_run=int(os.getenv("JOBS_MARKET_V2_COMPANY_SEED_SHADOW_MAX_BATCHES_PER_RUN", "2")),
-        company_seed_shadow_max_runtime_seconds=float(os.getenv("JOBS_MARKET_V2_COMPANY_SEED_SHADOW_MAX_RUNTIME_SECONDS", "30")),
-        source_failure_threshold=int(os.getenv("JOBS_MARKET_V2_SOURCE_FAILURE_THRESHOLD", "2")),
+        company_seed_shadow_max_runtime_seconds=float(
+            os.getenv("JOBS_MARKET_V2_COMPANY_SEED_SHADOW_MAX_RUNTIME_SECONDS", "30")
+        ),
     )

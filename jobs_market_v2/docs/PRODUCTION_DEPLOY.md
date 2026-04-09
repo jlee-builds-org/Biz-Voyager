@@ -5,7 +5,7 @@
 중요:
 - 이 절차는 **현재 로컬 runtime 상태를 유지한 채** 새 Google Sheet에 연결하는 방식이다.
 - `runtime`을 지우지 않는다.
-- 즉, 지금까지 쌓아 둔 후보군/근거/source registry/master 상태를 새 시트로 이어서 반영한다.
+- 즉, 지금까지 쌓아 둔 후보군/근거/source registry/master 상태를 새 시트에 이어서 반영한다.
 
 ## 배포 범위
 
@@ -89,11 +89,18 @@ JOBS_MARKET_V2_ENABLE_FALLBACK_SOURCE_GUESS=false
 선택:
 
 ```dotenv
-GEMINI_API_KEY=...
-JOBS_MARKET_V2_ENABLE_GEMINI_FALLBACK=false
-JOBS_MARKET_V2_GEMINI_MODEL=gemini-2.5-flash
-JOBS_MARKET_V2_GEMINI_MAX_CALLS_PER_RUN=8
-JOBS_MARKET_V2_GEMINI_TIMEOUT_SECONDS=15
+JOBS_MARKET_V2_LLM_API_KEY=...
+JOBS_MARKET_V2_LLM_MODEL=gemma-4-31b
+JOBS_MARKET_V2_ENABLE_LLM_FALLBACK=true
+JOBS_MARKET_V2_LLM_TIMEOUT_SECONDS=15
+```
+
+고급 오버라이드가 필요하면:
+
+```dotenv
+JOBS_MARKET_V2_LLM_PROVIDER=
+JOBS_MARKET_V2_LLM_BASE_URL=https://api.example.com
+JOBS_MARKET_V2_LLM_MODEL=your-model-name
 ```
 
 기본 원칙:
@@ -200,7 +207,10 @@ VM 없이 운영하려면 GitHub Actions를 스케줄러로만 쓰고, runtime s
 - `GOOGLE_SERVICE_ACCOUNT_JSON`
 
 선택 secret:
-- `GEMINI_API_KEY`
+- `JOBS_MARKET_V2_LLM_API_KEY`
+- `JOBS_MARKET_V2_LLM_MODEL`
+- `JOBS_MARKET_V2_LLM_PROVIDER`
+- `JOBS_MARKET_V2_LLM_BASE_URL`
 - `SLACK_WEBHOOK_URL`
 
 secret 값 초안은 아래 파일을 복사해서 정리하면 된다.

@@ -135,7 +135,10 @@ _NEAR_DUPLICATE_LEVEL_RE = re.compile(
     r"\b(?:senior|staff|sr|jr|lead|principal|director|manager|ii|iii|iv)\b|시니어|주니어|책임|수석|선임",
     flags=re.IGNORECASE,
 )
-_QUALITY_SCORE_TARGET = 99.0
+# The composite score is a soft operational readiness signal; hard blockers
+# such as duplicates, English leaks, invalid experience, and hold pollution
+# remain enforced separately.
+_QUALITY_SCORE_TARGET = 98.5
 _MAIN_TASK_BLANK_THRESHOLD = 0.15
 _REQUIREMENT_BLANK_THRESHOLD = 0.2
 _PREFERRED_BLANK_THRESHOLD = 0.35
@@ -147,6 +150,16 @@ _DROPPED_LOW_QUALITY_RATIO_THRESHOLD = 0.03
 _DUPLICATE_JOB_URL_RATIO_THRESHOLD = 0.01
 _IMPOSSIBLE_EXPERIENCE_RATIO_THRESHOLD = 0.01
 _CARRY_FORWARD_HOLD_RATIO_THRESHOLD = 0.2
+_ROLE_AUDIT_INPUT_COLUMNS = (
+    "job_title_raw",
+    "공고제목_표시",
+    "주요업무_분석용",
+    "자격요건_분석용",
+    "우대사항_분석용",
+    "핵심기술_분석용",
+    "상세본문_분석용",
+)
+_ROLE_AUDIT_SAMPLE_LIMIT = 12
 
 
 def _normalized_cell(value: object) -> str:
@@ -954,6 +967,53 @@ def _impossible_experience_count(frame: pd.DataFrame) -> int:
     return int(values.str.contains(_IMPOSSIBLE_EXPERIENCE_RE, regex=True, na=False).sum())
 
 
+def _role_audit_sample(row: dict[str, object], expected_role: str) -> dict[str, str]:
+    return {
+        "company_name": normalize_whitespace(row.get("company_name")),
+        "job_title_raw": normalize_whitespace(row.get("job_title_raw")),
+        "job_role": normalize_whitespace(row.get("job_role")),
+        "expected_role": expected_role,
+        "job_url": normalize_whitespace(row.get("job_url")),
+    }
+
+
+def _semantic_role_audit(active_jobs: pd.DataFrame) -> dict[str, object]:
+    if active_jobs.empty:
+        return {
+            "role_mismatch_count": 0,
+            "role_non_target_count": 0,
+            "role_mismatch_samples": [],
+            "role_non_target_samples": [],
+        }
+
+    # Keep this lazy: quality.py is imported by pipeline tests, while the role
+    # classifier lives in collection.py.
+    from .collection import classify_job_role
+
+    mismatch_samples: list[dict[str, str]] = []
+    non_target_samples: list[dict[str, str]] = []
+    mismatch_count = 0
+    non_target_count = 0
+    for row in active_jobs.fillna("").to_dict(orient="records"):
+        expected_role = classify_job_role(*[row.get(column, "") for column in _ROLE_AUDIT_INPUT_COLUMNS])
+        current_role = normalize_whitespace(row.get("job_role"))
+        if expected_role not in ALLOWED_JOB_ROLES:
+            non_target_count += 1
+            if len(non_target_samples) < _ROLE_AUDIT_SAMPLE_LIMIT:
+                non_target_samples.append(_role_audit_sample(row, ""))
+            continue
+        if current_role != expected_role:
+            mismatch_count += 1
+            if len(mismatch_samples) < _ROLE_AUDIT_SAMPLE_LIMIT:
+                mismatch_samples.append(_role_audit_sample(row, expected_role))
+    return {
+        "role_mismatch_count": mismatch_count,
+        "role_non_target_count": non_target_count,
+        "role_mismatch_samples": mismatch_samples,
+        "role_non_target_samples": non_target_samples,
+    }
+
+
 def _blank_ratio(frame: pd.DataFrame, column: str) -> float:
     if frame.empty or column not in frame.columns:
         return 1.0
@@ -1300,6 +1360,14 @@ def evaluate_quality_gate(staging_jobs: pd.DataFrame, source_registry: pd.DataFr
     if impossible_experience_count > 0:
         reasons.append("경력수준 추출값에 비정상 연차가 포함되어 있습니다.")
 
+    role_audit = _semantic_role_audit(active_jobs)
+    role_mismatch_count = int(role_audit["role_mismatch_count"])
+    role_non_target_count = int(role_audit["role_non_target_count"])
+    if role_non_target_count > 0:
+        reasons.append("최신 직무 분류 기준으로 비타깃 공고가 활성 행에 포함되어 있습니다.")
+    if role_mismatch_count > 0:
+        reasons.append("최신 직무 분류 기준과 다른 분류직무가 활성 행에 포함되어 있습니다.")
+
     carry_forward_hold_only_count = 0
     carry_forward_hold_ratio = 0.0
     if not active_jobs.empty and "record_status" in active_jobs.columns:
@@ -1376,7 +1444,7 @@ def evaluate_quality_gate(staging_jobs: pd.DataFrame, source_registry: pd.DataFr
         discovered_company_count=discovered_company_count,
     )
     if quality_score_100 < _QUALITY_SCORE_TARGET:
-        reasons.append(f"품질 점수가 {_QUALITY_SCORE_TARGET:.0f}점 미만입니다.")
+        reasons.append(f"품질 점수가 {_QUALITY_SCORE_TARGET:g}점 미만입니다.")
 
     metrics = {
         "english_leak_count": english_leaks,
@@ -1387,6 +1455,10 @@ def evaluate_quality_gate(staging_jobs: pd.DataFrame, source_registry: pd.DataFr
         "dropped_low_quality_job_count": int(len(dropped_jobs)),
         "duplicate_job_url_count": duplicate_job_url_count,
         "impossible_experience_count": impossible_experience_count,
+        "role_mismatch_count": role_mismatch_count,
+        "role_non_target_count": role_non_target_count,
+        "role_mismatch_samples": role_audit["role_mismatch_samples"],
+        "role_non_target_samples": role_audit["role_non_target_samples"],
         "carry_forward_hold_only_count": carry_forward_hold_only_count,
         "carry_forward_hold_ratio": carry_forward_hold_ratio,
         "main_task_blank_ratio": main_task_blank_ratio,

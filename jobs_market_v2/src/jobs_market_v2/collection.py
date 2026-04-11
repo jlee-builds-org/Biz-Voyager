@@ -96,6 +96,7 @@ _AI_ENGINEER_SIGNAL_PHRASES = (
     "ml ops",
     "llm",
     "foundation model",
+    "document ai",
     "computer vision",
     "speech recognition",
     "asr",
@@ -104,22 +105,58 @@ _AI_ENGINEER_SIGNAL_PHRASES = (
     "vision language",
     "vision language action",
     "perception",
+    "adas",
+    "slam",
+    "localization",
+    "positioning",
     "ai",
     "artificial intelligence",
     "인공지능",
     "머신러닝",
     "딥러닝",
+    "엘엘엠",
+    "브이엘엠",
     "음성인식",
     "자연어",
     "컴퓨터 비전",
+    "컴퓨터비전",
+    "엔피유",
+    "엘피유",
+    "지피유",
+    "광학문자인식",
+    "자율주행",
+    "에이디에이에스",
+    "센서 퓨전",
+    "센서 퓨젼",
+    "가속기",
+    "런타임",
+    "추론",
 )
 
 _AI_ENGINEER_EXCLUSION_PHRASES = (
     "qa",
     "quality assurance",
+    "business developer",
+    "business development",
     "product management",
     "product manager",
     "marketing",
+    "marketer",
+    "crm marketer",
+    "growth manager",
+    "operations manager",
+    "risk manager",
+    "sales manager",
+    "sales",
+    "recruiter",
+    "recruiting",
+    "coordinator",
+    "planner",
+    "consultant",
+    "designer",
+    "creative jobs",
+    "creative",
+    "p&c",
     "security engineer",
     "ai security",
     "dba",
@@ -209,10 +246,431 @@ _RESEARCH_SIGNAL_PHRASES = (
     "vision language",
     "vision language action",
     "computer vision",
+    "document ai",
     "robotics",
+    "slam",
+    "localization",
+    "positioning",
     "deep learning",
     "딥러닝",
     "머신러닝",
+    "자율주행",
+    "컴퓨터비전",
+)
+
+_ANALYST_TITLE_PHRASES = (
+    "data analyst",
+    "analytics analyst",
+    "데이터 분석가",
+    "데이터분석가",
+    "분석가",
+)
+
+_DATA_ENGINEER_TITLE_PHRASES = (
+    "data engineer",
+    "data analytics engineer",
+    "analytics engineer",
+    "데이터 엔지니어",
+)
+
+_DATA_SCIENTIST_TITLE_PHRASES = (
+    "data scientist",
+    "데이터 사이언티스트",
+    "applied scientist",
+    "머신러닝 사이언티스트",
+)
+
+_ANALYST_CONTEXT_PHRASES = (
+    "데이터 분석",
+    "데이터분석",
+    "analytics",
+    "analysis",
+    "dashboard",
+    "대시보드",
+    "sql",
+    "에스큐엘",
+    "a/b test",
+    "ab test",
+    "experiment",
+    "실험",
+    "metric",
+    "kpi",
+    "지표",
+    "cohort",
+    "funnel",
+    "reporting",
+    "리포트",
+)
+
+_NON_TARGET_TITLE_PHRASES = (
+    "product manager",
+    "growth manager",
+    "operations manager",
+    "risk manager",
+    "business developer",
+    "business development",
+    "sales manager",
+    "sales",
+    "marketer",
+    "crm marketer",
+    "recruiter",
+    "recruiting",
+    "coordinator",
+    "planner",
+    "consultant",
+    "designer",
+    "creative jobs",
+    "creative",
+    "frontend",
+    "backend",
+    "service developer",
+    "service engineer",
+    "software engineer",
+    "devops engineer",
+    "platform engineer",
+    "security engineer",
+    "architect",
+    "solution architect",
+    "qa engineer",
+    "quality engineer",
+    "p&c",
+    "hr",
+)
+
+_STRICT_NON_TARGET_TITLE_PHRASES = (
+    "product manager",
+    "growth manager",
+    "operations manager",
+    "risk manager",
+    "business developer",
+    "business development",
+    "sales manager",
+    "sales",
+    "marketer",
+    "crm marketer",
+    "recruiter",
+    "recruiting",
+    "coordinator",
+    "planner",
+    "consultant",
+    "designer",
+    "creative jobs",
+    "creative",
+    "architect",
+    "solution architect",
+    "p&c",
+    "hr",
+    "technical program manager",
+    "enterprise manager",
+    "strategy manager",
+    "planning lead",
+    "finance manager",
+    "brand manager",
+    "data manager",
+    "program management",
+    "pmo",
+    "사업개발",
+    "변호사",
+    "counsel",
+    "security engineer",
+    "qa engineer",
+    "quality engineer",
+)
+
+_TITLE_ONLY_NON_TARGET_PHRASES = (
+    "business analyst",
+    "country manager",
+    "project manager",
+    "program manager",
+    "qa engineering",
+    "cos manager",
+    "ax manager",
+    "applied ai project manager",
+    "official website",
+    "careers at",
+    "마케터",
+    "기획자",
+    "서비스기획",
+    "인사기획",
+    "경영기획",
+    "상품 매니지먼트",
+    "growth lead",
+    "technical pm",
+    "talent pool",
+    "채용공고",
+    "각 부문 신입/경력 모집",
+    "역할과 책임을 다합니다",
+    "mechatronics r&d",
+    "product owner",
+    "기획/전략 담당",
+    "기획/전략 담당자",
+    "전략/운영 담당",
+    "운영 담당",
+    "운영 담당자",
+    "전략기획",
+    "영업총괄",
+    "솔루션 영업",
+    "전략구매",
+    "세일즈 전략",
+    "cx 운영",
+    "운영 기획",
+    "서비스 기획",
+    "품질 관리",
+    "operations specialist",
+    "솔루션 컨설턴트",
+    "인재풀 등록",
+    "team leader",
+    "pm",
+    "구매",
+)
+
+_SERVICE_NON_TARGET_TITLE_PHRASES = (
+    "frontend",
+    "프론트엔드",
+    "backend",
+    "back-end",
+    "백엔드",
+    "service developer",
+    "service engineer",
+    "software engineer",
+    "platform engineer",
+    "devops engineer",
+    "application engineer",
+    "integration engineer",
+    "design engineer",
+    "dft engineer",
+    "soc design engineer",
+)
+
+_SERVICE_TARGET_ALLOWLIST_PHRASES = (
+    "software engineer, machine learning",
+    "machine learning software engineer",
+    "machine learning engineer",
+    "machine learning platform engineer",
+    "ml engineer",
+    "mlops engineer",
+    "ml/mlops",
+    "ai engineer",
+    "applied ai engineer",
+    "applied ai technical engineer",
+    "ai research engineer",
+    "deep learning engineer",
+    "computer vision",
+    "vision language",
+    "robotics",
+    "llm platform engineer",
+    "ai platform engineer",
+    "model serving",
+    "model training",
+    "npu software engineer",
+    "gpu software engineer",
+    "ai system software engineer",
+    "data platform",
+    "data pipeline",
+)
+
+_SIMPLE_DEVELOPER_HARD_EXCLUDE_TITLE_PHRASES = (
+    "backend software engineer",
+    "software engineer backend",
+    "backend 개발자",
+    "backend engineer",
+    "backend developer",
+    "back-end engineer",
+    "back-end developer",
+    "백엔드",
+    "백엔드 개발자",
+    "frontend software engineer",
+    "software engineer frontend",
+    "frontend engineer",
+    "frontend developer",
+    "front-end engineer",
+    "front-end developer",
+    "프론트엔드",
+    "프론트엔드 개발자",
+    "full stack engineer",
+    "full stack",
+    "full stack developer",
+    "fullstack engineer",
+    "fullstack",
+    "fullstack developer",
+    "full-stack",
+    "풀스택",
+    "cross platform",
+    "크로스 플랫폼",
+    "mobile developer",
+    "ios developer",
+    "android developer",
+    "web developer",
+    "app developer",
+    "server developer",
+)
+
+_SIMPLE_DEVELOPER_SOFT_TITLE_PHRASES = (
+    "software engineer",
+    "software developer",
+    "platform software engineer",
+    "system software engineer",
+    "forward deployed software engineer",
+    "console",
+)
+
+_SIMPLE_DEVELOPER_TARGET_ALLOWLIST_PHRASES = (
+    "machine learning",
+    "ml ",
+    "ml/",
+    "llm",
+    "model serving",
+    "quantization",
+    "npu",
+    "gpu",
+    "compiler",
+    "inference",
+    "firmware",
+    "embedded",
+    "sdk",
+    "ai system software engineer",
+    "ai platform",
+    "data platform",
+    "data pipeline",
+    "데이터 플랫폼",
+    "데이터 파이프라인",
+    "ai 반도체",
+    "반도체",
+    "chip",
+    "vision language",
+    "computer vision",
+    "컴퓨터 비전",
+    "컴퓨터비전",
+    "엘엘엠",
+    "브이엘엠",
+    "엔피유",
+    "엘피유",
+    "지피유",
+    "딥러닝",
+    "인공지능 가속",
+    "광학문자인식",
+    "자율주행",
+    "에이디에이에스",
+    "센서 퓨전",
+    "센서 퓨젼",
+    "가속기",
+    "런타임",
+    "추론",
+    "모델 서빙",
+    "모델 개발",
+    "robotics",
+    "slam",
+    "localization",
+    "positioning",
+)
+
+_DATA_SCIENTIST_CONTEXT_PHRASES = (
+    "data science",
+    "데이터 사이언스",
+    "데이터사이언스",
+    "applied scientist",
+    "모델링",
+    "modeling",
+    "forecast",
+    "예측",
+    "causal inference",
+    "인과 추론",
+    "statistical modeling",
+    "통계 모델",
+)
+
+_RESEARCHER_TITLE_PHRASES = (
+    "research scientist",
+    "ai researcher",
+    "ml researcher",
+    "researcher",
+    "리서처",
+    "연구직",
+    "연구원",
+    "postdoctoral researcher",
+)
+
+_MIXED_RESEARCHER_TITLE_PHRASES = (
+    "developer researcher",
+    "engineer researcher",
+    "개발자 researcher",
+    "개발자 리서처",
+    "엔지니어 researcher",
+    "엔지니어 리서처",
+)
+
+_RESEARCH_ENGINEER_TITLE_PHRASES = (
+    "research engineer",
+    "리서치 엔지니어",
+    "연구 엔지니어",
+)
+
+_RESEARCH_ACADEMIC_PHRASES = (
+    "논문",
+    "학회",
+    "출판",
+    "저널",
+    "publication",
+    "publish",
+    "published",
+    "conference",
+    "workshop",
+    "journal",
+    "박사",
+    "phd",
+    "postdoc",
+    "제1저자",
+    "교신저자",
+    "first author",
+    "benchmark",
+    "sota",
+    "state of the art",
+)
+
+_RESEARCH_WORK_PHRASES = (
+    "research",
+    "연구",
+    "실험",
+    "experiment",
+    "가설",
+    "methodology",
+    "ablation",
+    "evaluate",
+    "evaluation",
+)
+
+_ENGINEER_DELIVERY_PHRASES = _AI_ENGINEER_DELIVERY_PHRASES + (
+    "설계",
+    "구현",
+    "개발",
+    "구축",
+    "운영",
+    "배포",
+    "서빙",
+    "pipeline",
+    "파이프라인",
+    "framework",
+    "인프라",
+    "infra",
+    "infrastructure",
+    "system",
+    "시스템",
+    "service",
+    "서비스",
+    "product",
+    "제품",
+    "workflow",
+    "workflows",
+    "agent",
+    "agents",
+    "integration",
+    "통합",
+    "build",
+    "design",
+    "implement",
+    "deploy",
+    "serve",
+    "serving",
 )
 
 _HTML_LISTING_TEXT_HINTS = (
@@ -366,6 +824,18 @@ _GREETINGHR_DETAIL_PATH_RE = re.compile(r"/(?:[a-z]{2}/)?o/([0-9]+)")
 _GREETINGHR_PAGE_PATH_HINTS = ("recruit", "career", "job", "opening")
 _GREETINGHR_PAGE_PATH_EXCLUDE_HINTS = ("benefit", "process", "intro", "privacy", "privacypolicy")
 _BYTESIZE_API_BASE_URL = "https://career-api.thebytesize.ai/career/api/v1"
+_SARAMIN_API_BASE_URL = "https://oapi.saramin.co.kr/job-search"
+_SARAMIN_API_DEFAULT_FIELDS = "posting-date expiration-date keyword-code"
+_WORKNET_LIST_API_BASE_URL = "https://www.work24.go.kr/cm/openApi/call/wk/callOpenApiSvcInfo210L01.do"
+_WORKNET_DETAIL_API_BASE_URL = "https://www.work24.go.kr/cm/openApi/call/wk/callOpenApiSvcInfo210D01.do"
+_WORKNET_DEFAULT_KEYWORD = "데이터 분석|데이터 사이언티스트|데이터사이언스|머신러닝|인공지능"
+_WORKNET_DEFAULT_DISPLAY = "50"
+_WORKNET_DETAIL_LIMIT_QUERY_KEY = "detailLimit"
+_WORK24_PUBLIC_SEARCH_BASE_URL = "https://www.work24.go.kr/wk/a/b/1200/retriveDtlEmpSrchList.do"
+_WORK24_PUBLIC_SEARCH_POST_URL = "https://www.work24.go.kr/wk/a/b/1200/retriveDtlEmpSrchListInPost.do"
+_WORK24_PUBLIC_DEFAULT_RESULT_COUNT = "50"
+_WORK24_PUBLIC_DEFAULT_PAGE_LIMIT = "1"
+_WORK24_PUBLIC_DEFAULT_DETAIL_LIMIT = "0"
 _SARAMIN_RELAY_PATH_HINTS = (
     "/zf_user/jobs/relay/view",
     "/job-search/view",
@@ -380,11 +850,14 @@ _SOURCE_COLLECTION_BUCKET_PRIORITY = {
     "candidate": 1,
 }
 _SOURCE_COLLECTION_TYPE_PRIORITY = {
-    "greenhouse": 0,
-    "lever": 1,
-    "greetinghr": 2,
-    "recruiter": 3,
-    "html_page": 4,
+    "saramin_api": 0,
+    "worknet_api": 0,
+    "work24_public_html": 0,
+    "greenhouse": 1,
+    "lever": 2,
+    "greetinghr": 3,
+    "recruiter": 4,
+    "html_page": 5,
 }
 _SOURCE_COLLECTION_PROGRESS_POLICY_VERSION = "v8"
 _SOURCE_COLLECTION_HOT_ACTIVE_JOB_COUNT = 4
@@ -594,20 +1067,224 @@ def _has_any_phrase(text: str, phrases: tuple[str, ...]) -> bool:
     return any(_has_phrase(text, phrase) for phrase in phrases)
 
 
+def _count_phrase_hits(text: str, phrases: tuple[str, ...]) -> int:
+    return sum(1 for phrase in phrases if _has_phrase(text, phrase))
+
+
+def _has_simple_developer_target_signal(text: str) -> bool:
+    if _has_any_phrase(text, _SIMPLE_DEVELOPER_TARGET_ALLOWLIST_PHRASES):
+        return True
+    normalized_text = text if text.startswith(" ") else _normalize_role_text(text)
+    # Korean particles often attach directly to signal nouns after cleanup
+    # (for example, "엔피유가"). Keep this relaxed check scoped to the
+    # simple-developer rescue allowlist so generic exclusions stay strict.
+    return any(
+        phrase.strip() in normalized_text
+        for phrase in _SIMPLE_DEVELOPER_TARGET_ALLOWLIST_PHRASES
+        if re.search(r"[가-힣]", phrase)
+    )
+
+
+def _is_simple_developer_title(title_corpus: str, body_corpus: str = "") -> bool:
+    if not title_corpus:
+        return False
+    if _has_any_phrase(title_corpus, _SIMPLE_DEVELOPER_HARD_EXCLUDE_TITLE_PHRASES):
+        return True
+    if not _has_any_phrase(title_corpus, _SIMPLE_DEVELOPER_SOFT_TITLE_PHRASES):
+        return False
+    target_corpus = _normalize_role_text(f"{title_corpus} {body_corpus}")
+    if _has_simple_developer_target_signal(target_corpus):
+        return False
+    return True
+
+
+def _classify_ambiguous_research_engineer(
+    title_corpus: str,
+    body_corpus: str,
+    corpus: str,
+    *,
+    prefer_title_researcher: bool = True,
+) -> str:
+    if prefer_title_researcher and _has_any_phrase(title_corpus, ("research scientist", "scientist", "researcher", "리서처")):
+        return "인공지능 리서처"
+
+    academic_score = _count_phrase_hits(corpus, _RESEARCH_ACADEMIC_PHRASES)
+    academic_score += _count_phrase_hits(body_corpus, _RESEARCH_WORK_PHRASES)
+    delivery_score = _count_phrase_hits(corpus, _ENGINEER_DELIVERY_PHRASES)
+
+    if any(fragment in body_corpus for fragment in ("논문", "학회", "출판", "publication", "conference", "박사", "phd")):
+        academic_score += 2
+    if any(
+        fragment in body_corpus
+        for fragment in (
+            "고객",
+            "customer",
+            "product",
+            "제품",
+            "service",
+            "서비스",
+            "pipeline",
+            "파이프라인",
+            "workflow",
+            "agent",
+            "배포",
+            "서빙",
+            "integration",
+        )
+    ):
+        delivery_score += 2
+
+    if delivery_score >= academic_score + 1:
+        return "인공지능 엔지니어"
+    if (
+        academic_score >= delivery_score
+        and any(fragment in corpus for fragment in ("논문", "학회", "출판", "publication", "conference"))
+        and not any(
+            fragment in body_corpus
+            for fragment in ("제품", "서비스", "배포", "서빙", "파이프라인", "구축", "설계", "구현", "workflow", "agent")
+        )
+    ):
+        return "인공지능 리서처"
+    if academic_score >= delivery_score + 2:
+        return "인공지능 리서처"
+    return "인공지능 엔지니어"
+
+
+def _classify_mixed_researcher_title(
+    title_corpus: str,
+    body_corpus: str,
+    corpus: str,
+) -> str:
+    if _has_any_phrase(title_corpus, _NON_TARGET_TITLE_PHRASES):
+        return ""
+    if _has_any_phrase(title_corpus, _MIXED_RESEARCHER_TITLE_PHRASES):
+        mixed_delivery_score = _count_phrase_hits(corpus, _ENGINEER_DELIVERY_PHRASES)
+        mixed_academic_score = _count_phrase_hits(corpus, _RESEARCH_ACADEMIC_PHRASES)
+        mixed_academic_score += _count_phrase_hits(body_corpus, _RESEARCH_WORK_PHRASES)
+        if any(
+            fragment in body_corpus
+            for fragment in (
+                "통합",
+                "integration",
+                "구현",
+                "실행 가능",
+                "온디바이스",
+                "on device",
+                "on-device",
+                "추론 엔진",
+                "inference engine",
+            )
+        ):
+            mixed_delivery_score += 3
+        if (
+            _has_any_phrase(title_corpus, ("engineer", "developer", "엔지니어", "개발자"))
+            and mixed_delivery_score >= mixed_academic_score
+        ):
+            return "인공지능 엔지니어"
+        return _classify_ambiguous_research_engineer(
+            title_corpus,
+            body_corpus,
+            corpus,
+            prefer_title_researcher=False,
+        )
+    return "인공지능 리서처"
+
+
 def classify_job_role(*texts: str | None) -> str:
     if not texts:
         return ""
-    normalized_texts = [normalize_whitespace(text) for text in texts if normalize_whitespace(text)]
-    title_candidates = normalized_texts[:2]
+    normalized_texts = [normalize_whitespace(text) for text in texts]
+    title_candidates = [text for text in normalized_texts[:2] if text]
     if not title_candidates:
         return ""
     primary_title = _normalize_role_text(title_candidates[0])
-    corpus = _normalize_role_text(" ".join(normalized_texts))
+    title_corpus = _normalize_role_text(" ".join(title_candidates))
+    body_corpus = _normalize_role_text(" ".join(text for text in normalized_texts[2:] if text))
+    corpus = _normalize_role_text(" ".join(text for text in normalized_texts if text))
     if not corpus:
         return ""
+    if _is_simple_developer_title(title_corpus, body_corpus):
+        return ""
+    if _has_any_phrase(title_corpus, _TITLE_ONLY_NON_TARGET_PHRASES):
+        return ""
+    title_has_analyst_signal = _has_any_phrase(title_corpus, _ANALYST_TITLE_PHRASES)
+    corpus_has_target_signal = _has_any_phrase(
+        corpus,
+        _AI_ENGINEER_SIGNAL_PHRASES
+        + _RESEARCH_SIGNAL_PHRASES
+        + _DATA_ENGINEER_TITLE_PHRASES
+        + _DATA_SCIENTIST_TITLE_PHRASES,
+    )
+    if _has_any_phrase(title_corpus, _STRICT_NON_TARGET_TITLE_PHRASES) and not title_has_analyst_signal:
+        return ""
+    if (
+        _has_any_phrase(primary_title, _SERVICE_NON_TARGET_TITLE_PHRASES)
+        and not title_has_analyst_signal
+        and not (
+            _has_any_phrase(primary_title, _SERVICE_TARGET_ALLOWLIST_PHRASES)
+            or _has_any_phrase(
+                body_corpus,
+                _AI_ENGINEER_SIGNAL_PHRASES
+                + _RESEARCH_SIGNAL_PHRASES
+                + _DATA_ENGINEER_TITLE_PHRASES
+                + _DATA_SCIENTIST_TITLE_PHRASES,
+            )
+        )
+    ):
+        return ""
+    if _has_any_phrase(title_corpus, ("ai model production", "document ai")):
+        return "인공지능 엔지니어"
+    if (
+        _has_phrase(primary_title, "ai devops")
+        and _has_any_phrase(corpus, ("배포", "클라우드", "쿠버네티스", "kubernetes", "인공지능", "llm"))
+    ):
+        return "인공지능 엔지니어"
+    if (
+        _has_phrase(title_corpus, "ai research div")
+        and _has_phrase(title_corpus, "internship")
+        and _has_any_phrase(corpus, _RESEARCH_ACADEMIC_PHRASES + _RESEARCH_WORK_PHRASES + _RESEARCH_SIGNAL_PHRASES)
+    ):
+        return "인공지능 리서처"
+    if _has_any_phrase(title_corpus, _DATA_SCIENTIST_TITLE_PHRASES):
+        return "데이터 사이언티스트"
+    if _has_any_phrase(title_corpus, _DATA_ENGINEER_TITLE_PHRASES) and not title_has_analyst_signal:
+        return "인공지능 엔지니어"
+    if (
+        title_has_analyst_signal
+        and not (
+            _has_any_phrase(title_corpus, _AI_ENGINEER_SIGNAL_PHRASES)
+            and _has_any_phrase(title_corpus, _AI_ENGINEER_DELIVERY_PHRASES)
+        )
+    ):
+        return "데이터 분석가"
+    if (
+        _has_any_phrase(primary_title, _SERVICE_TARGET_ALLOWLIST_PHRASES)
+        and _has_any_phrase(primary_title, _AI_ENGINEER_DELIVERY_PHRASES)
+        and not _has_any_phrase(title_corpus, _RESEARCHER_TITLE_PHRASES + _RESEARCH_ENGINEER_TITLE_PHRASES)
+    ):
+        return "인공지능 엔지니어"
+    if (
+        _has_any_phrase(title_corpus, ("engineer", "엔지니어", "developer", "개발자"))
+        and not title_has_analyst_signal
+        and not _has_any_phrase(title_corpus, _RESEARCHER_TITLE_PHRASES + _RESEARCH_ENGINEER_TITLE_PHRASES)
+        and corpus_has_target_signal
+    ):
+        return "인공지능 엔지니어"
+    if any(_has_phrase(title_corpus, keyword) for keyword in ROLE_KEYWORDS["데이터 사이언티스트"]):
+        return "데이터 사이언티스트"
+    if _has_any_phrase(title_corpus, _RESEARCH_ENGINEER_TITLE_PHRASES):
+        return _classify_ambiguous_research_engineer(title_corpus, body_corpus, corpus)
+    if _has_phrase(primary_title, "postdoctoral researcher") and _has_any_phrase(corpus, _RESEARCH_SIGNAL_PHRASES):
+        return "인공지능 리서처"
+    if (
+        _has_any_phrase(title_corpus, _RESEARCHER_TITLE_PHRASES)
+        and _has_any_phrase(corpus, _RESEARCH_SIGNAL_PHRASES)
+    ):
+        return _classify_mixed_researcher_title(title_corpus, body_corpus, corpus)
     if (
         _has_any_phrase(corpus, ("데이터사이언스", "데이터 사이언스", "data science"))
         and _has_any_phrase(corpus, ("데이터분석", "데이터 분석", "analytics", "analysis"))
+        and not _has_any_phrase(title_corpus, _NON_TARGET_TITLE_PHRASES)
     ):
         return "데이터 사이언티스트"
     if (
@@ -618,20 +1295,23 @@ def classify_job_role(*texts: str | None) -> str:
     for role in (
         "데이터 사이언티스트",
         "데이터 분석가",
-        "인공지능 리서처",
         "인공지능 엔지니어",
     ):
-        if any(_has_phrase(corpus, keyword) for keyword in ROLE_KEYWORDS[role]):
+        if any(_has_phrase(title_corpus, keyword) for keyword in ROLE_KEYWORDS[role]):
             return role
-    if _has_phrase(primary_title, "postdoctoral researcher") and _has_any_phrase(primary_title, _RESEARCH_SIGNAL_PHRASES):
-        return "인공지능 리서처"
     if (
-        _has_any_phrase(primary_title, ("연구직", "연구원"))
-        and _has_any_phrase(primary_title, _RESEARCH_SIGNAL_PHRASES)
+        _has_any_phrase(corpus, ("데이터분석", "데이터 분석", "analytics", "analysis"))
+        and _has_any_phrase(corpus, _ANALYST_CONTEXT_PHRASES)
+        and not _has_any_phrase(title_corpus, _RESEARCHER_TITLE_PHRASES + _RESEARCH_ENGINEER_TITLE_PHRASES)
+        and not _has_any_phrase(title_corpus, _NON_TARGET_TITLE_PHRASES)
     ):
-        return "인공지능 리서처"
-    if _has_phrase(primary_title, "researcher") and _has_any_phrase(primary_title, _RESEARCH_SIGNAL_PHRASES):
-        return "인공지능 리서처"
+        return "데이터 분석가"
+    if (
+        _has_any_phrase(corpus, ("데이터사이언스", "데이터 사이언스", "data science", "applied scientist"))
+        and _has_any_phrase(corpus, _DATA_SCIENTIST_CONTEXT_PHRASES + _AI_ENGINEER_SIGNAL_PHRASES)
+        and not _has_any_phrase(title_corpus, _NON_TARGET_TITLE_PHRASES)
+    ):
+        return "데이터 사이언티스트"
     if not _has_any_phrase(primary_title, _AI_ENGINEER_EXCLUSION_PHRASES):
         if _has_phrase(primary_title, "ml ops engineer") or _has_phrase(primary_title, "mlops engineer"):
             return "인공지능 엔지니어"
@@ -653,7 +1333,56 @@ def classify_job_role(*texts: str | None) -> str:
             return "인공지능 엔지니어"
         if _has_phrase(primary_title, "director") and _has_any_phrase(primary_title, ("machine learning", "computer vision", "llm", "foundation model", "perception")):
             return "인공지능 엔지니어"
+    if (
+        _has_any_phrase(corpus, _RESEARCH_SIGNAL_PHRASES)
+        and _has_any_phrase(corpus, _RESEARCHER_TITLE_PHRASES)
+        and _count_phrase_hits(corpus, _RESEARCH_ACADEMIC_PHRASES) >= 1
+        and not _has_any_phrase(title_corpus, _NON_TARGET_TITLE_PHRASES)
+    ):
+        return "인공지능 리서처"
     return ""
+
+
+def _refresh_existing_job_role(row: dict[str, Any]) -> tuple[str, dict[str, str]]:
+    analysis_fields = {
+        "주요업무_분석용": normalize_whitespace(row.get("주요업무_분석용")),
+        "자격요건_분석용": normalize_whitespace(row.get("자격요건_분석용")),
+        "우대사항_분석용": normalize_whitespace(row.get("우대사항_분석용")),
+        "핵심기술_분석용": normalize_whitespace(row.get("핵심기술_분석용")),
+        "상세본문_분석용": normalize_whitespace(row.get("상세본문_분석용")),
+    }
+    if not any(analysis_fields.values()):
+        analysis_fields = build_analysis_fields(row)
+    refreshed_role = classify_job_role(
+        row.get("job_title_raw"),
+        row.get("공고제목_표시"),
+        analysis_fields.get("주요업무_분석용", ""),
+        analysis_fields.get("자격요건_분석용", ""),
+        analysis_fields.get("우대사항_분석용", ""),
+        analysis_fields.get("핵심기술_분석용", ""),
+        analysis_fields.get("상세본문_분석용", ""),
+    )
+    return refreshed_role, analysis_fields
+
+
+def _refresh_merged_job_rows(frame: pd.DataFrame) -> pd.DataFrame:
+    if frame.empty:
+        return frame
+
+    refreshed_rows: list[dict[str, Any]] = []
+    for row in frame.fillna("").to_dict(orient="records"):
+        refreshed_role, analysis_fields = _refresh_existing_job_role(row)
+        if refreshed_role in ALLOWED_JOB_ROLES:
+            row["job_role"] = refreshed_role
+        else:
+            continue
+
+        display_fields = build_display_fields(row, analysis_fields=analysis_fields)
+        row.update(analysis_fields)
+        row.update(display_fields)
+        refreshed_rows.append({column: row.get(column, "") for column in JOB_COLUMNS})
+
+    return pd.DataFrame(refreshed_rows, columns=list(JOB_COLUMNS))
 
 
 def _should_skip_general_service_role_salvage(
@@ -664,9 +1393,11 @@ def _should_skip_general_service_role_salvage(
     title_text = _normalize_role_text(" ".join(filter(None, (title_raw, title_ko))))
     if not title_text or not _has_any_phrase(title_text, _GENERAL_SERVICE_DELIVERY_TITLE_PHRASES):
         return False
+    body_text = _normalize_role_text(" ".join(filter(None, body_sections)))
+    if _is_simple_developer_title(title_text, body_text):
+        return True
     if _has_any_phrase(title_text, _AI_ENGINEER_SIGNAL_PHRASES) or _has_any_phrase(title_text, _RESEARCH_SIGNAL_PHRASES):
         return False
-    body_text = _normalize_role_text(" ".join(filter(None, body_sections)))
     if not body_text:
         return False
     if _has_any_phrase(body_text, _STRONG_AI_WORK_PHRASES):
@@ -863,13 +1594,18 @@ def normalize_job_payload(
         return {}, {}
 
     source_url = canonicalize_runtime_source_url(source_row.get("source_url"))
+    source_type = normalize_whitespace(source_row.get("source_type"))
+    company_name = normalize_whitespace(source_row.get("company_name"))
+    company_name_hint = canonicalize_company_name_for_jobs(raw_job.get("company_name_hint"))
+    if source_type in {"worknet_api", "work24_public_html", "saramin_api"} and company_name_hint:
+        company_name = company_name_hint
     job_url = normalize_whitespace(raw_job.get("job_url") or "")
     if job_url:
         job_key = stable_hash([job_url])
     else:
         job_key = stable_hash(
             [
-                source_row.get("company_name"),
+                company_name,
                 source_url,
                 title_raw,
             ]
@@ -887,7 +1623,7 @@ def normalize_job_payload(
         "source_url": source_url,
         "source_bucket": source_row.get("source_bucket"),
         "source_name": source_row.get("source_name"),
-        "company_name": source_row.get("company_name"),
+        "company_name": company_name,
         "company_tier": source_row.get("company_tier"),
         "job_title_raw": title_raw,
         "experience_level_raw": experience_raw,
@@ -922,14 +1658,32 @@ def normalize_job_payload(
     normalized.update(analysis_fields)
     normalized.update(display_fields)
     record = normalized.copy()
+    raw_payload_for_storage = raw_job
+    if source_type == "work24_public_html":
+        raw_payload_for_storage = {
+            key: raw_job.get(key, "")
+            for key in (
+                "title",
+                "job_url",
+                "location",
+                "country",
+                "experience_level",
+                "company_name_hint",
+                "listing_context",
+                "worknet_wanted_auth_no",
+                "status",
+                "source_compliance",
+            )
+            if normalize_whitespace(raw_job.get(key, ""))
+        }
     raw_detail = {
         "run_id": run_id,
         "snapshot_date": snapshot_date,
         "job_key": job_key,
         "source_url": source_row.get("source_url"),
-        "company_name": source_row.get("company_name"),
+        "company_name": company_name,
         "job_title_raw": title_raw,
-        "raw_payload_json": dump_json(raw_job),
+        "raw_payload_json": dump_json(raw_payload_for_storage),
     }
     raw_detail = {column: raw_detail.get(column, "") for column in RAW_DETAIL_COLUMNS}
     return record, raw_detail
@@ -1513,6 +2267,12 @@ def _source_root_url(url: str) -> str:
 def _infer_source_type_from_url(url: str) -> str:
     parts = urlsplit(normalize_whitespace(url))
     host = parts.netloc.lower()
+    if "oapi.saramin.co.kr" in host:
+        return "saramin_api"
+    if "work24.go.kr" in host and "/cm/openapi/call/wk/" in parts.path.lower():
+        return "worknet_api"
+    if "work24.go.kr" in host and "/wk/a/b/1200/retrivedtlempsrchlist" in parts.path.lower():
+        return "work24_public_html"
     if "career.greetinghr.com" in host:
         return "greetinghr"
     if "recruiter.co.kr" in host:
@@ -2426,6 +3186,660 @@ def _extract_saramin_company_info_jobs(content: str, base_url: str) -> list[dict
     return jobs
 
 
+def _xml_text(node: ElementTree.Element | None, path: str, default: str = "") -> str:
+    if node is None:
+        return default
+    found = node.find(path)
+    if found is None:
+        return default
+    return normalize_whitespace(html.unescape("".join(found.itertext())))
+
+
+def _xml_texts(node: ElementTree.Element | None, path: str) -> list[str]:
+    if node is None:
+        return []
+    return [normalize_whitespace(html.unescape("".join(found.itertext()))) for found in node.findall(path) if normalize_whitespace("".join(found.itertext()))]
+
+
+def _html_section(title: str, value: str) -> str:
+    text = normalize_whitespace(value)
+    if not text:
+        return ""
+    return f"<h2>{html.escape(title)}</h2><p>{html.escape(text).replace(chr(10), '<br/>')}</p>"
+
+
+def _join_nonempty(*values: str | None, separator: str = "\n") -> str:
+    parts = [normalize_whitespace(value) for value in values if normalize_whitespace(value)]
+    return separator.join(dict.fromkeys(parts))
+
+
+def _worknet_detail_page_url(wanted_auth_no: str) -> str:
+    auth_no = normalize_whitespace(wanted_auth_no)
+    if not auth_no:
+        return ""
+    query = urlencode(
+        {
+            "wantedAuthNo": auth_no,
+            "infoTypeCd": "VALIDATION",
+            "infoTypeGroup": "tb_workinfoworknet",
+        }
+    )
+    return f"https://www.work24.go.kr/wk/a/b/1500/empDetailAuthView.do?{query}"
+
+
+def _worknet_query_value(url: str, key: str) -> str:
+    parts = urlsplit(normalize_whitespace(url))
+    return normalize_whitespace((parse_qs(parts.query, keep_blank_values=True).get(key) or [""])[0])
+
+
+def _worknet_auth_key(url: str, settings) -> str:
+    return normalize_whitespace(getattr(settings, "worknet_api_auth_key", "")) or _worknet_query_value(url, "authKey")
+
+
+def _build_worknet_api_list_url(url: str, auth_key: str) -> str:
+    normalized_url = normalize_whitespace(url) or _WORKNET_LIST_API_BASE_URL
+    parts = urlsplit(normalized_url)
+    query = parse_qs(parts.query, keep_blank_values=True)
+    query.pop(_WORKNET_DETAIL_LIMIT_QUERY_KEY, None)
+    query["authKey"] = [auth_key]
+    query["callTp"] = ["L"]
+    query["returnType"] = ["XML"]
+    if not normalize_whitespace((query.get("startPage") or [""])[0]):
+        query["startPage"] = ["1"]
+    if not normalize_whitespace((query.get("display") or [""])[0]):
+        query["display"] = [_WORKNET_DEFAULT_DISPLAY]
+    if not normalize_whitespace((query.get("sortOrderBy") or [""])[0]):
+        query["sortOrderBy"] = ["DESC"]
+    if not normalize_whitespace((query.get("empTpGb") or [""])[0]):
+        query["empTpGb"] = ["1"]
+    if not normalize_whitespace((query.get("keyword") or [""])[0]) and not normalize_whitespace((query.get("occupation") or [""])[0]):
+        query["keyword"] = [_WORKNET_DEFAULT_KEYWORD]
+    return urlunsplit(("https", "www.work24.go.kr", "/cm/openApi/call/wk/callOpenApiSvcInfo210L01.do", urlencode(query, doseq=True), ""))
+
+
+def _build_worknet_api_detail_url(url_or_auth_no: str, auth_key: str, *, info_svc: str = "VALIDATION") -> str:
+    normalized = normalize_whitespace(url_or_auth_no)
+    wanted_auth_no = _worknet_query_value(normalized, "wantedAuthNo") if normalized.startswith(("http://", "https://")) else normalized
+    query = {
+        "authKey": auth_key,
+        "callTp": "D",
+        "returnType": "XML",
+        "wantedAuthNo": wanted_auth_no,
+        "infoSvc": normalize_whitespace(info_svc) or "VALIDATION",
+    }
+    return urlunsplit(("https", "www.work24.go.kr", "/cm/openApi/call/wk/callOpenApiSvcInfo210D01.do", urlencode(query), ""))
+
+
+def _worknet_detail_limit(url: str) -> int:
+    raw_value = _worknet_query_value(url, _WORKNET_DETAIL_LIMIT_QUERY_KEY)
+    try:
+        return max(min(int(raw_value or _WORKNET_DEFAULT_DISPLAY), 100), 0)
+    except ValueError:
+        return int(_WORKNET_DEFAULT_DISPLAY)
+
+
+def _fetch_worknet_xml(url: str, settings, *, accept: str = "application/xml") -> str:
+    timeout_seconds, connect_timeout_seconds = _source_timeout_values(settings, "worknet_api")
+    with httpx.Client(
+        timeout=build_timeout(timeout_seconds, connect_timeout_seconds),
+        follow_redirects=True,
+        headers={
+            "User-Agent": settings.user_agent,
+            "Accept": accept,
+        },
+    ) as client:
+        response = client.get(url)
+        response.raise_for_status()
+        return response.text
+
+
+def _worknet_list_nodes(root: ElementTree.Element) -> list[ElementTree.Element]:
+    nodes = root.findall(".//wanted")
+    if root.tag == "wanted":
+        nodes.insert(0, root)
+    return nodes
+
+
+def _worknet_detail_nodes(root: ElementTree.Element) -> list[ElementTree.Element]:
+    nodes = root.findall(".//wantedDtl")
+    if root.tag == "wantedDtl":
+        nodes.insert(0, root)
+    return nodes
+
+
+def _build_worknet_list_job(node: ElementTree.Element) -> dict[str, Any]:
+    wanted_auth_no = _xml_text(node, "wantedAuthNo")
+    title = _xml_text(node, "title")
+    company = _xml_text(node, "company")
+    region = _xml_text(node, "region") or _join_nonempty(_xml_text(node, "basicAddr"), _xml_text(node, "detailAddr"), separator=" ")
+    experience_level = _xml_text(node, "career")
+    job_url = _xml_text(node, "wantedInfoUrl") or _worknet_detail_page_url(wanted_auth_no)
+    listing_context = _join_nonempty(
+        title,
+        company,
+        _xml_text(node, "indTpNm"),
+        region,
+        experience_level,
+        _xml_text(node, "minEdubg"),
+        _xml_text(node, "maxEdubg"),
+        _xml_text(node, "salTpNm"),
+        _xml_text(node, "sal"),
+        _xml_text(node, "closeDt"),
+        separator=" / ",
+    )
+    return {
+        "title": title,
+        "description_html": f"<div>{html.escape(listing_context)}</div>" if listing_context else "",
+        "job_url": job_url,
+        "location": region,
+        "country": region,
+        "experience_level": experience_level,
+        "company_name_hint": company,
+        "listing_context": listing_context,
+        "worknet_wanted_auth_no": wanted_auth_no,
+        "status": "active",
+    }
+
+
+def _build_worknet_detail_job(node: ElementTree.Element, fallback_job: dict[str, Any] | None = None) -> dict[str, Any]:
+    fallback_job = fallback_job or {}
+    corp = node.find("corpInfo") or node.find(".//corpInfo")
+    wanted = node.find("wantedInfo") or node.find(".//wantedInfo")
+    wanted_auth_no = _xml_text(node, "wantedAuthNo") or normalize_whitespace(fallback_job.get("worknet_wanted_auth_no"))
+    company = _xml_text(corp, "corpNm") or normalize_whitespace(fallback_job.get("company_name_hint"))
+    title = _xml_text(wanted, "wantedTitle") or normalize_whitespace(fallback_job.get("title"))
+    jobs_name = _xml_text(wanted, "jobsNm")
+    related_jobs = _xml_text(wanted, "relJobsNm")
+    job_content = _xml_text(wanted, "jobCont")
+    requirements = _join_nonempty(
+        _xml_text(wanted, "enterTpNm"),
+        _xml_text(wanted, "eduNm"),
+        _xml_text(wanted, "major"),
+        _xml_text(wanted, "certificate"),
+        _xml_text(wanted, "compAbl"),
+        _xml_text(wanted, "forLang"),
+    )
+    preferred = _join_nonempty(_xml_text(wanted, "pfCond"), _xml_text(wanted, "etcPfCond"))
+    benefits = _join_nonempty(
+        _xml_text(wanted, "etcWelfare"),
+        _xml_text(wanted, "fourIns"),
+        _xml_text(wanted, "retirepay"),
+        _xml_text(wanted, "workdayWorkhrCont"),
+    )
+    keywords = _join_nonempty(*_xml_texts(wanted, ".//srchKeywordNm"), separator=", ")
+    company_context = _join_nonempty(
+        _xml_text(corp, "indTpCdNm"),
+        _xml_text(corp, "busiCont"),
+        _xml_text(corp, "busiSize"),
+        separator=" / ",
+    )
+    main_tasks = _join_nonempty(jobs_name, related_jobs, job_content)
+    description_html = "".join(
+        part
+        for part in (
+            _html_section("회사정보", _join_nonempty(company, company_context, separator=" / ")),
+            _html_section("주요업무", main_tasks),
+            _html_section("자격요건", requirements),
+            _html_section("우대사항", preferred),
+            _html_section("근무조건", _join_nonempty(_xml_text(wanted, "empTpNm"), _xml_text(wanted, "salTpNm"), _xml_text(wanted, "workRegion"))),
+            _html_section("복리후생", benefits),
+            _html_section("전형/접수", _join_nonempty(_xml_text(wanted, "selMthd"), _xml_text(wanted, "rcptMthd"), _xml_text(wanted, "submitDoc"))),
+            _html_section("기타안내", _xml_text(wanted, "etcHopeCont")),
+        )
+        if part
+    )
+    if not description_html and fallback_job.get("description_html"):
+        description_html = normalize_whitespace(fallback_job.get("description_html"))
+    location = _xml_text(wanted, "workRegion") or normalize_whitespace(fallback_job.get("location"))
+    detail_url = _xml_text(wanted, "dtlRecrContUrl")
+    job_url = detail_url or normalize_whitespace(fallback_job.get("job_url")) or _worknet_detail_page_url(wanted_auth_no)
+    return {
+        "title": title,
+        "description_html": description_html,
+        "main_tasks": main_tasks,
+        "requirements": requirements,
+        "preferred": preferred,
+        "core_skills": keywords or _join_nonempty(_xml_text(wanted, "certificate"), _xml_text(wanted, "compAbl"), separator=", "),
+        "job_url": job_url,
+        "location": location,
+        "country": location,
+        "experience_level": _xml_text(wanted, "enterTpNm") or normalize_whitespace(fallback_job.get("experience_level")),
+        "company_name_hint": company,
+        "listing_context": _join_nonempty(title, jobs_name, related_jobs, keywords, location, separator=" / "),
+        "worknet_wanted_auth_no": wanted_auth_no,
+        "status": "active",
+    }
+
+
+def _parse_worknet_jobs(content: str) -> list[dict[str, Any]]:
+    root = ElementTree.fromstring(content)
+    detail_jobs = [_build_worknet_detail_job(node) for node in _worknet_detail_nodes(root)]
+    if detail_jobs:
+        return detail_jobs
+    return [_build_worknet_list_job(node) for node in _worknet_list_nodes(root)]
+
+
+def _fetch_worknet_api_source(url: str, settings) -> tuple[str, str]:
+    auth_key = _worknet_auth_key(url, settings)
+    if not auth_key:
+        raise RuntimeError("Worknet API authKey is not configured")
+    call_type = _worknet_query_value(url, "callTp").upper()
+    if call_type == "D" or "callopenapisvcinfo210d01" in urlsplit(normalize_whitespace(url)).path.lower():
+        detail_url = _build_worknet_api_detail_url(url, auth_key, info_svc=_worknet_query_value(url, "infoSvc") or "VALIDATION")
+        jobs = _parse_worknet_jobs(_fetch_worknet_xml(detail_url, settings))
+        return json.dumps({"jobs": jobs}, ensure_ascii=False), "application/json"
+
+    list_url = _build_worknet_api_list_url(url, auth_key)
+    list_xml = _fetch_worknet_xml(list_url, settings)
+    listings = _parse_worknet_jobs(list_xml)
+    hydrated_jobs: list[dict[str, Any]] = []
+    for listing in listings[: _worknet_detail_limit(url)]:
+        wanted_auth_no = normalize_whitespace(listing.get("worknet_wanted_auth_no"))
+        if not wanted_auth_no:
+            if listing.get("title") and listing.get("job_url"):
+                hydrated_jobs.append(listing)
+            continue
+        try:
+            detail_url = _build_worknet_api_detail_url(wanted_auth_no, auth_key)
+            detail_jobs = _parse_worknet_jobs(_fetch_worknet_xml(detail_url, settings))
+        except Exception:  # noqa: BLE001
+            detail_jobs = []
+        hydrated_jobs.extend(detail_jobs or [listing])
+    return json.dumps({"jobs": hydrated_jobs}, ensure_ascii=False), "application/json"
+
+
+def _work24_public_query_int(url: str, key: str, default: str, *, minimum: int = 0, maximum: int = 100) -> int:
+    raw_value = _worknet_query_value(url, key)
+    try:
+        value = int(raw_value or default)
+    except ValueError:
+        value = int(default)
+    return max(min(value, maximum), minimum)
+
+
+def _build_work24_public_search_form(url: str, page: int) -> dict[str, str]:
+    keyword = _worknet_query_value(url, "srcKeyword") or _worknet_query_value(url, "keyword") or _WORKNET_DEFAULT_KEYWORD
+    result_count = str(_work24_public_query_int(url, "resultCnt", _WORK24_PUBLIC_DEFAULT_RESULT_COUNT, minimum=1, maximum=50))
+    site_clcd = _worknet_query_value(url, "siteClcd") or "WORK"
+    return {
+        "currentPageNo": str(max(page, 1)),
+        "pageIndex": str(max(page, 1)),
+        "resultCnt": result_count,
+        "sortOrderBy": _worknet_query_value(url, "sortOrderBy") or "DESC",
+        "sortField": _worknet_query_value(url, "sortField") or "DATE",
+        "siteClcd": site_clcd,
+        "keyword": keyword,
+        "srcKeyword": keyword,
+        "keywordWantedTitle": _worknet_query_value(url, "keywordWantedTitle") or "Y",
+        "keywordBusiNm": _worknet_query_value(url, "keywordBusiNm") or "N",
+        "keywordJobCont": _worknet_query_value(url, "keywordJobCont") or "Y",
+        "keywordStaAreaNm": _worknet_query_value(url, "keywordStaAreaNm") or "N",
+        "empTpGbcd": _worknet_query_value(url, "empTpGbcd") or "1",
+    }
+
+
+def _fetch_work24_public_html(url: str, settings, *, data: dict[str, str] | None = None) -> str:
+    timeout_seconds, connect_timeout_seconds = _source_timeout_values(settings, "work24_public_html")
+    with httpx.Client(
+        timeout=build_timeout(timeout_seconds, connect_timeout_seconds),
+        follow_redirects=True,
+        headers={
+            "User-Agent": settings.user_agent,
+            "Accept": "text/html,application/xhtml+xml",
+        },
+    ) as client:
+        response = client.post(url, data=data) if data is not None else client.get(url)
+        response.raise_for_status()
+        return response.text
+
+
+def _work24_public_wanted_auth_no(url: str) -> str:
+    return _worknet_query_value(url, "wantedAuthNo")
+
+
+def _work24_public_mobile_detail_url(job_url: str) -> str:
+    absolute_url = urljoin(_WORK24_PUBLIC_SEARCH_BASE_URL, normalize_whitespace(job_url))
+    parts = urlsplit(absolute_url)
+    query = parse_qs(parts.query, keep_blank_values=True)
+    query.setdefault("infoTypeCd", ["VALIDATION"])
+    query.setdefault("infoTypeGroup", ["tb_workinfoworknet"])
+    query["theWorkYn"] = ["Y"]
+    return urlunsplit(("https", "m.work24.go.kr", parts.path, urlencode(query, doseq=True), ""))
+
+
+def _work24_public_clip_text(value: str, limit: int = 1800) -> str:
+    text = normalize_whitespace(clean_html_text(value))
+    if len(text) <= limit:
+        return text
+    return f"{text[:limit].rstrip()}..."
+
+
+def _work24_public_row_text(row: BeautifulSoup | Any, selector: str) -> str:
+    node = row.select_one(selector) if row else None
+    return normalize_whitespace(clean_html_text(str(node or "")))
+
+
+def _parse_work24_public_list_jobs(content: str, base_url: str = _WORK24_PUBLIC_SEARCH_BASE_URL) -> list[dict[str, Any]]:
+    soup = BeautifulSoup(content, "lxml")
+    jobs: list[dict[str, Any]] = []
+    seen_urls: set[str] = set()
+    for anchor in soup.select("a[data-emp-detail], a[href*='empDetailAuthView.do']"):
+        href = normalize_whitespace(anchor.get("href"))
+        if not href:
+            continue
+        job_url = urljoin(base_url or _WORK24_PUBLIC_SEARCH_BASE_URL, href)
+        if job_url in seen_urls:
+            continue
+        seen_urls.add(job_url)
+        parts = urlsplit(job_url)
+        query = parse_qs(parts.query, keep_blank_values=True)
+        info_type_cd = normalize_whitespace((query.get("infoTypeCd") or [""])[0])
+        info_type_group = normalize_whitespace((query.get("infoTypeGroup") or [""])[0])
+        if info_type_cd and info_type_cd != "VALIDATION":
+            continue
+        if info_type_group and info_type_group != "tb_workinfoworknet":
+            continue
+        row = anchor.find_parent("tr")
+        checkbox = row.select_one("input[id^='chkboxWantedAuthNo']") if row else None
+        checkbox_parts = normalize_whitespace(checkbox.get("value") if checkbox else "").split("|")
+        company = ""
+        if len(checkbox_parts) >= 3:
+            company = checkbox_parts[2]
+        company = normalize_whitespace(company or _work24_public_row_text(row, ".cp_name"))
+        title = normalize_whitespace(anchor.get_text(" ", strip=True))
+        member_text = _work24_public_row_text(row, "li.member")
+        salary_text = _work24_public_row_text(row, "li.dollar")
+        time_text = _work24_public_row_text(row, "li.time")
+        location = _work24_public_row_text(row, "li.site")
+        row_text = normalize_whitespace(clean_html_text(str(row or "")))
+        deadline_match = re.search(r"마감일\s*:\s*([0-9]{4}-[0-9]{2}-[0-9]{2}|채용시까지)", row_text)
+        registered_match = re.search(r"등록일\s*:\s*([0-9]{4}-[0-9]{2}-[0-9]{2})", row_text)
+        listing_context = _join_nonempty(
+            title,
+            company,
+            member_text,
+            salary_text,
+            time_text,
+            location,
+            f"마감일: {deadline_match.group(1)}" if deadline_match else "",
+            f"등록일: {registered_match.group(1)}" if registered_match else "",
+            separator=" / ",
+        )
+        jobs.append(
+            {
+                "title": title,
+                "description_html": _html_section("채용정보", listing_context),
+                "main_tasks": listing_context,
+                "requirements": member_text,
+                "job_url": job_url,
+                "location": location,
+                "country": location or "대한민국",
+                "experience_level": member_text,
+                "company_name_hint": company,
+                "listing_context": listing_context,
+                "worknet_wanted_auth_no": _work24_public_wanted_auth_no(job_url),
+                "status": "active",
+                "source_compliance": "work24_public_html: metadata-first, source-linked",
+            }
+        )
+    return jobs
+
+
+def _work24_public_table_value(soup: BeautifulSoup, label: str) -> str:
+    for header in soup.find_all("th"):
+        if normalize_whitespace(header.get_text(" ", strip=True)) != label:
+            continue
+        cell = header.find_next_sibling("td")
+        if cell is not None:
+            return _work24_public_clip_text(str(cell), limit=900)
+    return ""
+
+
+def _work24_public_em_value(soup: BeautifulSoup, label: str) -> str:
+    for marker in soup.find_all("em"):
+        if normalize_whitespace(marker.get_text(" ", strip=True)) != label:
+            continue
+        parent_text = normalize_whitespace(marker.parent.get_text(" ", strip=True) if marker.parent else "")
+        if parent_text.startswith(label):
+            return normalize_whitespace(parent_text[len(label) :])
+        return parent_text
+    return ""
+
+
+def _work24_public_heading_body(soup: BeautifulSoup, label: str) -> str:
+    for heading in soup.find_all(["strong", "h2", "h3", "h4"]):
+        if normalize_whitespace(heading.get_text(" ", strip=True)) != label:
+            continue
+        parent = heading.parent
+        if parent is None:
+            continue
+        text = normalize_whitespace(parent.get_text("\n", strip=True))
+        if text.startswith(label):
+            text = normalize_whitespace(text[len(label) :])
+        if text:
+            return _work24_public_clip_text(text, limit=2400)
+    return ""
+
+
+def _parse_work24_public_detail_job(content: str, fallback_job: dict[str, Any] | None = None) -> dict[str, Any]:
+    fallback_job = fallback_job or {}
+    soup = BeautifulSoup(content, "lxml")
+    wanted_auth_no = normalize_whitespace(
+        (soup.select_one("input#wantedAuthNo") or {}).get("value", "") if soup.select_one("input#wantedAuthNo") else ""
+    ) or normalize_whitespace(fallback_job.get("worknet_wanted_auth_no"))
+    title = normalize_whitespace(fallback_job.get("title"))
+    if not title:
+        title_node = soup.select_one(".t2_sb, .h2_sb")
+        title = normalize_whitespace(title_node.get_text(" ", strip=True) if title_node else "")
+    company = _work24_public_em_value(soup, "기업명") or normalize_whitespace(fallback_job.get("company_name_hint"))
+    location = _work24_public_table_value(soup, "근무 예정지") or normalize_whitespace(fallback_job.get("location"))
+    experience = _work24_public_table_value(soup, "경력") or normalize_whitespace(fallback_job.get("experience_level"))
+    education = _work24_public_table_value(soup, "학력")
+    job_content = _work24_public_heading_body(soup, "직무내용")
+    job_category = _join_nonempty(
+        _work24_public_table_value(soup, "모집 직종"),
+        _work24_public_table_value(soup, "관련 직종"),
+        _work24_public_table_value(soup, "직종 키워드"),
+        separator=" / ",
+    )
+    requirements = _join_nonempty(
+        job_category,
+        experience,
+        education,
+        _work24_public_table_value(soup, "자격 면허"),
+        _work24_public_table_value(soup, "전공"),
+    )
+    preferred = _join_nonempty(
+        _work24_public_table_value(soup, "우대조건"),
+        _work24_public_table_value(soup, "기타 우대사항"),
+        _work24_public_table_value(soup, "컴퓨터 활용 능력"),
+        _work24_public_table_value(soup, "외국어 능력"),
+    )
+    core_skills = _join_nonempty(
+        _work24_public_table_value(soup, "직종 키워드"),
+        _work24_public_table_value(soup, "자격 면허"),
+        _work24_public_table_value(soup, "컴퓨터 활용 능력"),
+        separator=", ",
+    )
+    main_tasks = _join_nonempty(job_category, job_content)
+    description_html = "".join(
+        part
+        for part in (
+            _html_section("채용정보", _join_nonempty(title, company, location, separator=" / ")),
+            _html_section("주요업무", main_tasks),
+            _html_section("자격요건", requirements),
+            _html_section("우대사항", preferred),
+            _html_section("핵심기술", core_skills),
+        )
+        if part
+    )
+    if not description_html:
+        description_html = normalize_whitespace(fallback_job.get("description_html"))
+    job_url = normalize_whitespace(fallback_job.get("job_url"))
+    return {
+        **fallback_job,
+        "title": title or normalize_whitespace(fallback_job.get("title")),
+        "description_html": description_html,
+        "main_tasks": main_tasks or normalize_whitespace(fallback_job.get("main_tasks")),
+        "requirements": requirements or normalize_whitespace(fallback_job.get("requirements")),
+        "preferred": preferred or normalize_whitespace(fallback_job.get("preferred")),
+        "core_skills": core_skills or normalize_whitespace(fallback_job.get("core_skills")),
+        "job_url": job_url or _worknet_detail_page_url(wanted_auth_no),
+        "location": location,
+        "country": location or normalize_whitespace(fallback_job.get("country")) or "대한민국",
+        "experience_level": experience,
+        "company_name_hint": company,
+        "listing_context": _join_nonempty(title, company, job_category, location, separator=" / "),
+        "worknet_wanted_auth_no": wanted_auth_no,
+        "status": "active",
+        "source_compliance": "work24_public_html: detail text clipped, source-linked, no full raw payload storage",
+    }
+
+
+def _parse_work24_public_jobs(content: str, base_url: str = _WORK24_PUBLIC_SEARCH_BASE_URL) -> list[dict[str, Any]]:
+    if content.lstrip().startswith("{"):
+        return _parse_json_jobs(content)
+    list_jobs = _parse_work24_public_list_jobs(content, base_url=base_url)
+    if list_jobs:
+        return list_jobs
+    detail_job = _parse_work24_public_detail_job(content)
+    return [detail_job] if detail_job.get("title") and detail_job.get("job_url") else []
+
+
+def _fetch_work24_public_html_source(url: str, settings) -> tuple[str, str]:
+    normalized_url = normalize_whitespace(url) or _WORK24_PUBLIC_SEARCH_BASE_URL
+    page_limit = _work24_public_query_int(normalized_url, "pageLimit", _WORK24_PUBLIC_DEFAULT_PAGE_LIMIT, minimum=1, maximum=5)
+    detail_limit = _work24_public_query_int(normalized_url, _WORKNET_DETAIL_LIMIT_QUERY_KEY, _WORK24_PUBLIC_DEFAULT_DETAIL_LIMIT, minimum=0, maximum=100)
+    jobs: list[dict[str, Any]] = []
+    seen_urls: set[str] = set()
+    for page in range(1, page_limit + 1):
+        form_data = _build_work24_public_search_form(normalized_url, page)
+        list_html = _fetch_work24_public_html(_WORK24_PUBLIC_SEARCH_POST_URL, settings, data=form_data)
+        for listing in _parse_work24_public_list_jobs(list_html, base_url=_WORK24_PUBLIC_SEARCH_BASE_URL):
+            job_url = normalize_whitespace(listing.get("job_url"))
+            if not job_url or job_url in seen_urls:
+                continue
+            seen_urls.add(job_url)
+            jobs.append(listing)
+    hydrated_jobs: list[dict[str, Any]] = []
+    for index, listing in enumerate(jobs):
+        if index >= detail_limit:
+            hydrated_jobs.append(listing)
+            continue
+        try:
+            detail_html = _fetch_work24_public_html(_work24_public_mobile_detail_url(normalize_whitespace(listing.get("job_url"))), settings)
+            hydrated_jobs.append(_parse_work24_public_detail_job(detail_html, fallback_job=listing))
+        except Exception:  # noqa: BLE001
+            hydrated_jobs.append(listing)
+    return json.dumps({"jobs": hydrated_jobs}, ensure_ascii=False), "application/json"
+
+
+def _build_saramin_api_url(url: str, access_key: str) -> str:
+    normalized_url = normalize_whitespace(url) or _SARAMIN_API_BASE_URL
+    parts = urlsplit(normalized_url)
+    query = parse_qs(parts.query, keep_blank_values=True)
+    if not normalize_whitespace((query.get("access-key") or [""])[0]):
+        query["access-key"] = [access_key]
+    if not normalize_whitespace((query.get("count") or [""])[0]):
+        query["count"] = ["110"]
+    if not normalize_whitespace((query.get("sort") or [""])[0]):
+        query["sort"] = ["pd"]
+    if not normalize_whitespace((query.get("fields") or [""])[0]):
+        query["fields"] = [_SARAMIN_API_DEFAULT_FIELDS]
+    encoded_query = urlencode(query, doseq=True)
+    return urlunsplit((parts.scheme or "https", parts.netloc or "oapi.saramin.co.kr", parts.path or "/job-search", encoded_query, ""))
+
+
+def _fetch_saramin_api_json(url: str, settings) -> dict[str, Any]:
+    access_key = normalize_whitespace(getattr(settings, "saramin_api_access_key", ""))
+    if not access_key:
+        raise RuntimeError("Saramin API access-key is not configured")
+    request_url = _build_saramin_api_url(url, access_key)
+    timeout_seconds, connect_timeout_seconds = _source_timeout_values(settings, "saramin_api")
+    with httpx.Client(
+        timeout=build_timeout(timeout_seconds, connect_timeout_seconds),
+        follow_redirects=True,
+        headers={
+            "User-Agent": settings.user_agent,
+            "Accept": "application/json",
+        },
+    ) as client:
+        response = client.get(request_url)
+        response.raise_for_status()
+        payload = response.json()
+    return payload if isinstance(payload, dict) else {}
+
+
+def _extract_saramin_api_listings(payload: dict[str, Any]) -> list[dict[str, Any]]:
+    jobs_payload = payload.get("jobs") if isinstance(payload, dict) else {}
+    if isinstance(jobs_payload, dict):
+        listings = jobs_payload.get("job")
+        if isinstance(listings, list):
+            return [listing for listing in listings if isinstance(listing, dict)]
+        if isinstance(listings, dict):
+            return [listings]
+    return []
+
+
+def _build_saramin_api_listing_job(listing: dict[str, Any]) -> dict[str, Any]:
+    company_block = listing.get("company") or {}
+    if isinstance(company_block.get("detail"), dict):
+        company_block = company_block.get("detail") or {}
+    position = listing.get("position") or {}
+    title = normalize_whitespace(position.get("title"))
+    job_url = normalize_whitespace(listing.get("url"))
+    location = normalize_whitespace((position.get("location") or {}).get("name") if isinstance(position.get("location"), dict) else position.get("location"))
+    experience = position.get("experience-level") or {}
+    if isinstance(experience, dict):
+        experience_level = normalize_whitespace(experience.get("name"))
+    else:
+        experience_level = normalize_whitespace(experience)
+    keyword_text = normalize_whitespace(listing.get("keyword"))
+    description_parts = [part for part in (title, keyword_text) if part]
+    description_html = f"<div>{html.escape(' / '.join(description_parts))}</div>" if description_parts else ""
+    return {
+        "title": title,
+        "description_html": description_html,
+        "job_url": job_url,
+        "location": location,
+        "country": location,
+        "experience_level": experience_level,
+        "company_name_hint": normalize_whitespace(company_block.get("name")),
+        "listing_context": " ".join(part for part in (title, keyword_text, location, experience_level) if part),
+    }
+
+
+def _fetch_saramin_api_source(url: str, settings) -> tuple[str, str]:
+    payload = _fetch_saramin_api_json(url, settings)
+    hydrated_jobs: list[dict[str, Any]] = []
+    seen_urls: set[str] = set()
+    for listing in _extract_saramin_api_listings(payload):
+        active = normalize_whitespace(str(listing.get("active") or ""))
+        if active and active != "1":
+            continue
+        relay_url = normalize_whitespace(listing.get("url"))
+        if not relay_url or relay_url in seen_urls:
+            continue
+        seen_urls.add(relay_url)
+        relay_payload = _fetch_saramin_relay_source(relay_url, settings)
+        if relay_payload is not None:
+            relay_content, relay_content_type = relay_payload
+            relay_jobs = parse_jobs_from_payload(
+                relay_content,
+                relay_content_type,
+                "json_api",
+                base_url=relay_url,
+                settings=settings,
+            )
+            if relay_jobs:
+                hydrated_jobs.extend(relay_jobs)
+                continue
+        fallback_job = _build_saramin_api_listing_job(listing)
+        if fallback_job.get("title") and fallback_job.get("job_url"):
+            hydrated_jobs.append(fallback_job)
+    return json.dumps({"jobs": hydrated_jobs}, ensure_ascii=False), "application/json"
+
+
 def _extract_multi_role_html_jobs(content: str, base_url: str) -> list[dict[str, Any]]:
     soup = BeautifulSoup(content, "lxml")
     candidate_selectors = (".jobs .job", ".job-list .job", ".job")
@@ -3122,6 +4536,14 @@ def parse_jobs_from_payload(
     visited_urls: set[str] | None = None,
 ) -> list[dict]:
     lowered_content_type = (content_type or "").lower()
+    if source_type == "saramin_api":
+        return _parse_json_jobs(content)
+    if source_type == "worknet_api":
+        if content.lstrip().startswith("<"):
+            return _parse_worknet_jobs(content)
+        return _parse_json_jobs(content)
+    if source_type == "work24_public_html":
+        return _parse_work24_public_jobs(content, base_url=base_url)
     if source_type == "greenhouse":
         return _parse_greenhouse_jobs(content)
     if source_type == "lever":
@@ -3149,7 +4571,7 @@ def _source_timeout_values(settings, source_type: str) -> tuple[float, float]:
     if source_type == "html_page":
         total = getattr(settings, "html_source_timeout_seconds", None)
         connect = getattr(settings, "html_source_connect_timeout_seconds", None)
-    elif source_type in {"greetinghr", "recruiter", "greenhouse", "lever", "json_api", "jsonld", "rss", "sitemap"}:
+    elif source_type in {"saramin_api", "worknet_api", "work24_public_html", "greetinghr", "recruiter", "greenhouse", "lever", "json_api", "jsonld", "rss", "sitemap"}:
         total = getattr(settings, "ats_source_timeout_seconds", None)
         connect = getattr(settings, "ats_source_connect_timeout_seconds", None)
     else:
@@ -3507,6 +4929,12 @@ def fetch_source_content(
         return _fetch_greetinghr_source(url, paths, settings)
     if source_type == "recruiter":
         return _fetch_recruiter_source(url, paths, settings, enable_ocr_recovery=enable_recruiter_ocr_recovery)
+    if source_type == "saramin_api":
+        return _fetch_saramin_api_source(url, settings)
+    if source_type == "worknet_api":
+        return _fetch_worknet_api_source(url, settings)
+    if source_type == "work24_public_html":
+        return _fetch_work24_public_html_source(url, settings)
     if source_type == "html_page":
         saramin_payload = _fetch_saramin_relay_source(url, settings)
         if saramin_payload is not None:
@@ -3971,4 +5399,5 @@ def merge_incremental(
                 filtered_rows.append({column: row.get(column, "") for column in JOB_COLUMNS})
             merged = pd.DataFrame(filtered_rows, columns=list(JOB_COLUMNS))
         merged = merged.drop_duplicates(subset=["job_key"], keep="last").reset_index(drop=True)
+        merged = _refresh_merged_job_rows(merged)
     return merged.sort_values(["company_name", "job_role", "job_key"]).reset_index(drop=True)

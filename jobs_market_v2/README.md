@@ -110,6 +110,7 @@ Fill in at least:
 - `GOOGLE_SHEETS_SPREADSHEET_ID`
 - `GOOGLE_SERVICE_ACCOUNT_JSON`
 - `JOBS_MARKET_V2_LLM_API_KEY` if you want LLM-based fallback/refinement
+- `JOBS_MARKET_V2_WORKNET_API_AUTH_KEY` if you want to collect Worknet job postings through the official Open API
 
 Most users do not need to change the provider settings. The checked-in deployment defaults already point to an LLM API backend that runs `gemma-4-31b`.
 
@@ -198,6 +199,47 @@ GOOGLE_SERVICE_ACCOUNT_JSON=/absolute/path/to/service-account.json
 Optional, but recommended. If present, the project can use an LLM API for fallback refinement and harder extraction cases.
 
 By default, the checked-in deployment profile uses `gemma-4-31b`.
+
+### `JOBS_MARKET_V2_WORKNET_API_AUTH_KEY`
+
+Optional, but recommended when you want broader Korean job-board coverage. This key enables the official Worknet/Goyong24 job API adapter.
+
+The adapter uses the official list API first, then hydrates each posting with the official detail API so analysis can use `jobCont`, `certificate`, `major`, `pfCond`, `etcPfCond`, `workdayWorkhrCont`, `etcWelfare`, and related fields. It does not scrape Worknet HTML pages.
+
+Example source URL:
+
+```text
+https://www.work24.go.kr/cm/openApi/call/wk/callOpenApiSvcInfo210L01.do?keyword=데이터+분석|데이터+사이언티스트&display=50&detailLimit=50
+```
+
+Use `source_type: worknet_api` for this source. Keep the `authKey` out of the URL and put it in `.env` instead.
+
+### Work24 Public HTML Fallback
+
+If your organization cannot obtain the official Worknet/Goyong24 API key yet, Biz Voyager can use a conservative public-search fallback:
+
+```text
+https://www.work24.go.kr/wk/a/b/1200/retriveDtlEmpSrchList.do?srcKeyword=데이터+분석가|데이터사이언티스트|AI+연구원|AI+엔지니어&siteClcd=WORK&resultCnt=50&pageLimit=5&scanDepth=200&detailLimit=0
+```
+
+Use `source_type: work24_public_html` with `discovery_method: manual_seed_public_jobboard` for these sources.
+In that mode, Work24 is treated as a **target-role population discovery feed**, not as a direct `master` collection source. The default seed file keeps four Work24 feeds aligned to the four supported target roles: Data Analyst, Data Scientist, AI Researcher, and AI Engineer.
+
+This adapter intentionally keeps the scope narrow:
+
+- It searches the public Work24 job-search page and keeps only official Work24 rows (`infoTypeCd=VALIDATION`, `infoTypeGroup=tb_workinfoworknet`).
+- It does not require an API key.
+- Direct collection runs still cap `pageLimit` at 5 and `resultCnt` at 50 to avoid aggressive crawling.
+- Population discovery is broader: it follows result pages until an empty page or repeated no-new-job pages are observed, with `JOBS_MARKET_V2_WORK24_POPULATION_MAX_PAGES_PER_SOURCE` as a safety cap.
+- Each scanned Work24 page is audited in `runtime/work24_population_scan_log.csv` with page number, listing count, new listing count, cumulative unique jobs, and stop reason.
+- `detailLimit` defaults to `0` for population discovery because the first goal is full listing coverage by `wantedAuthNo`; later collection/detail hydration remains quality-gated.
+- Weekly expansion writes job-level population rows to `runtime/work24_population_jobs.csv` and company-level candidates to `runtime/work24_population_candidates.csv`.
+- It also preserves every raw company discovered from Work24 in `runtime/work24_population_shadow_companies.csv`, so strict candidate filters do not erase the wider population pool.
+- Those companies then enter the normal company evidence, company screening, official source discovery, source verification, collection, quality gate, and sheet sync path.
+- Broad Work24 public-search rows are deliberately skipped by `source_registry`, so they do not flow directly into `staging` or `master`.
+- If a Work24-discovered company has no approved/candidate official source, Biz Voyager creates a narrow company-name Work24 fallback source with `discovery_method: work24_limited_public_board_fallback`.
+- That fallback searches only the company name (`keywordBusiNm=Y`), stays in the `candidate` bucket, and remains subject to the normal collection, redaction, deduplication, low-quality filter, and quality gate before anything can reach `master`.
+- Raw detail payload storage is redacted for this source type; the sheet should expose Biz Voyager's derived classification, summary fields, source attribution, and the original Work24 link rather than republishing full posting text.
 
 ### Advanced LLM backend overrides
 

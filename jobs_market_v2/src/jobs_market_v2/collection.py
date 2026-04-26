@@ -1116,13 +1116,27 @@ def _select_incremental_collectable_positions(
         forced_seen.add(position)
         forced_positions.append(position)
 
+    priority_seed_limit = max(process_limit - len(forced_positions), 0)
+    priority_seed_positions: list[int] = []
+    priority_seed_seen: set[int] = set(forced_seen)
+    if priority_seed_limit > 0:
+        for position in collectable_positions:
+            if len(priority_seed_positions) >= priority_seed_limit:
+                break
+            if not coerce_bool(rows[position].get("_priority_seed_source")):
+                continue
+            if position in priority_seed_seen:
+                continue
+            priority_seed_seen.add(position)
+            priority_seed_positions.append(position)
+
     cursor_positions = collectable_positions[start_offset : start_offset + process_limit]
-    if not cursor_positions and not forced_positions:
+    if not cursor_positions and not forced_positions and not priority_seed_positions:
         return cursor_positions, cursor_positions, forced_positions
 
     pinned_limit = min(process_limit // 5, _SOURCE_COLLECTION_ACTIVE_PIN_LIMIT)
     pinned_positions: list[int] = []
-    pinned_seen: set[int] = set(forced_seen)
+    pinned_seen: set[int] = set(priority_seed_seen)
     if pinned_limit > 0 and start_offset > 0:
         for position in collectable_positions[:start_offset]:
             if _source_last_active_job_count(rows[position]) <= 0:
@@ -1148,7 +1162,10 @@ def _select_incremental_collectable_positions(
             if len(scout_positions) >= scout_limit:
                 break
 
-    remaining_capacity = max(process_limit - len(forced_positions) - len(pinned_positions) - len(scout_positions), 0)
+    remaining_capacity = max(
+        process_limit - len(forced_positions) - len(priority_seed_positions) - len(pinned_positions) - len(scout_positions),
+        0,
+    )
     trimmed_cursor_positions: list[int] = []
     for position in cursor_positions:
         if len(trimmed_cursor_positions) >= remaining_capacity:
@@ -1157,7 +1174,7 @@ def _select_incremental_collectable_positions(
             continue
         trimmed_cursor_positions.append(position)
     cursor_selected_positions = scout_positions + trimmed_cursor_positions
-    pinned_selected_positions = forced_positions + pinned_positions
+    pinned_selected_positions = forced_positions + priority_seed_positions + pinned_positions
     return pinned_selected_positions + cursor_selected_positions, cursor_selected_positions, pinned_selected_positions
 
 

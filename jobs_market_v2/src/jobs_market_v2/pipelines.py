@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 from datetime import datetime, timedelta
 from pathlib import Path
+import time
 from uuid import uuid4
 from zoneinfo import ZoneInfo
 
@@ -24,6 +25,8 @@ from .company_seed_sources import (
 )
 from .constants import COMPANY_CANDIDATE_COLUMNS, IMPORT_COMPANY_COLUMNS, JOB_COLUMNS, RUN_COLUMNS, SOURCE_REGISTRY_COLUMNS
 from .discovery import (
+    WORK24_LIMITED_PUBLIC_BOARD_DISCOVERY_METHOD,
+    audit_work24_population,
     discover_companies,
     discover_source_candidates,
     discover_work24_population,
@@ -258,6 +261,130 @@ def _active_source_urls(frame: pd.DataFrame) -> set[str]:
         active_mask = pd.Series(True, index=frame.index)
     urls = frame.loc[active_mask, "source_url"].fillna("").astype(str).map(normalize_whitespace)
     return {url for url in urls.tolist() if url}
+
+
+def _work24_priority_seed_source_urls(registry: pd.DataFrame) -> set[str]:
+    if registry.empty or "source_url" not in registry.columns:
+        return set()
+
+    source_type = registry.get("source_type", pd.Series("", index=registry.index)).fillna("").astype(str).map(normalize_whitespace)
+    discovery_method = registry.get("discovery_method", pd.Series("", index=registry.index)).fillna("").astype(str).map(normalize_whitespace)
+    verification_status = registry.get("verification_status", pd.Series("", index=registry.index)).fillna("").astype(str).map(normalize_whitespace)
+    urls = registry.get("source_url", pd.Series("", index=registry.index)).fillna("").astype(str).map(normalize_whitespace)
+
+    priority_mask = (
+        source_type.eq("work24_public_html")
+        & discovery_method.eq(WORK24_LIMITED_PUBLIC_BOARD_DISCOVERY_METHOD)
+        & verification_status.ne("성공")
+    )
+    return {url for url in urls.loc[priority_mask].tolist() if url}
+
+
+def _work24_registry_frame(registry: pd.DataFrame) -> pd.DataFrame:
+    if registry.empty or "source_type" not in registry.columns:
+        return pd.DataFrame(columns=list(SOURCE_REGISTRY_COLUMNS))
+    work24 = registry[
+        registry["source_type"].fillna("").astype(str).map(normalize_whitespace).eq("work24_public_html")
+    ].copy()
+    for column in SOURCE_REGISTRY_COLUMNS:
+        if column not in work24.columns:
+            work24[column] = ""
+    return work24[list(SOURCE_REGISTRY_COLUMNS)]
+
+
+def _work24_registry_summary(registry: pd.DataFrame) -> dict[str, object]:
+    work24 = _work24_registry_frame(registry)
+    if work24.empty:
+        return {
+            "work24_source_count": 0,
+            "work24_verified_source_success_count": 0,
+            "work24_verified_source_failure_count": 0,
+            "work24_unverified_source_count": 0,
+            "work24_active_source_count": 0,
+            "work24_active_job_sum": 0,
+            "work24_source_bucket_counts": {},
+        }
+    verification = work24["verification_status"].fillna("").astype(str).map(normalize_whitespace)
+    active_job_counts = pd.to_numeric(work24["last_active_job_count"], errors="coerce").fillna(0)
+    return {
+        "work24_source_count": int(len(work24)),
+        "work24_verified_source_success_count": int(verification.eq("성공").sum()),
+        "work24_verified_source_failure_count": int(verification.eq("실패").sum()),
+        "work24_unverified_source_count": int(verification.eq("미검증").sum()),
+        "work24_active_source_count": int(active_job_counts.gt(0).sum()),
+        "work24_active_job_sum": int(active_job_counts.sum()),
+        "work24_source_bucket_counts": {
+            str(key): int(value)
+            for key, value in work24["source_bucket"].fillna("").astype(str).map(normalize_whitespace).value_counts().to_dict().items()
+        },
+    }
+
+
+def _work24_population_source_urls(paths) -> set[str]:
+    jobs = read_csv_or_empty(paths.work24_population_jobs_path)
+    if jobs.empty or "population_source_url" not in jobs.columns:
+        return set()
+    urls = jobs["population_source_url"].fillna("").astype(str).map(normalize_whitespace)
+    return {url for url in urls.tolist() if url}
+
+
+def _work24_registry_source_urls(registry: pd.DataFrame) -> set[str]:
+    work24 = _work24_registry_frame(registry)
+    if work24.empty or "source_url" not in work24.columns:
+        return set()
+    urls = work24["source_url"].fillna("").astype(str).map(normalize_whitespace)
+    return {url for url in urls.tolist() if url}
+
+
+def _work24_source_discovery_gap(paths, registry: pd.DataFrame) -> dict[str, object]:
+    expected_urls = _work24_population_source_urls(paths)
+    registry_urls = _work24_registry_source_urls(registry)
+    missing_urls = sorted(expected_urls - registry_urls)
+    return {
+        "work24_expected_source_count": int(len(expected_urls)),
+        "work24_registry_source_count": int(len(registry_urls)),
+        "work24_missing_source_count": int(len(missing_urls)),
+        "work24_missing_source_urls_sample": missing_urls[:5],
+    }
+
+
+def _work24_job_frame(frame: pd.DataFrame) -> pd.DataFrame:
+    if frame.empty or "source_url" not in frame.columns:
+        return pd.DataFrame(columns=list(JOB_COLUMNS))
+    work24 = frame[
+        frame["source_url"].fillna("").astype(str).str.contains("work24.go.kr", regex=False)
+    ].copy()
+    for column in JOB_COLUMNS:
+        if column not in work24.columns:
+            work24[column] = ""
+    return work24[list(JOB_COLUMNS)]
+
+
+def _work24_job_summary(frame: pd.DataFrame) -> dict[str, object]:
+    work24 = _work24_job_frame(frame)
+    if work24.empty:
+        return {
+            "work24_job_count": 0,
+            "work24_active_job_count": 0,
+            "work24_role_counts": {},
+            "work24_company_count": 0,
+        }
+    active_count = (
+        int(work24["is_active"].map(coerce_bool).sum())
+        if "is_active" in work24.columns
+        else int(len(work24))
+    )
+    return {
+        "work24_job_count": int(len(work24)),
+        "work24_active_job_count": int(active_count),
+        "work24_role_counts": {
+            str(key): int(value)
+            for key, value in work24["job_role"].fillna("").astype(str).map(normalize_whitespace).replace("", pd.NA).dropna().value_counts().to_dict().items()
+        },
+        "work24_company_count": int(
+            work24["company_name"].fillna("").astype(str).map(normalize_whitespace).replace("", pd.NA).dropna().nunique()
+        ),
+    }
 
 
 def _active_job_count(frame: pd.DataFrame) -> int:
@@ -655,6 +782,264 @@ def discover_work24_population_candidates_pipeline(project_root: Path | None = N
         raise
 
 
+def audit_work24_population_pipeline(project_root: Path | None = None) -> dict:
+    paths = get_paths(project_root)
+    started_at = _now()
+    run_id = _run_id("audit-work24-population")
+    try:
+        summary = audit_work24_population(paths)
+        _record_run(paths, "audit-work24-population", run_id, started_at, summary)
+        return summary
+    except Exception as exc:  # noqa: BLE001
+        _record_error(paths, "audit-work24-population", run_id, exc)
+        raise
+
+
+def run_work24_convergence_pipeline(
+    project_root: Path | None = None,
+    *,
+    metric_name: str = "work24_suspicious_positive_count",
+    max_iterations: int = 4,
+    stable_passes: int = 1,
+    sleep_seconds: float = 0.0,
+) -> dict:
+    paths = get_paths(project_root)
+    started_at = _now()
+    run_id = _run_id("run-work24-convergence")
+    max_iterations = max(1, int(max_iterations))
+    stable_passes = max(1, int(stable_passes))
+    sleep_seconds = max(0.0, float(sleep_seconds))
+    metric_name = normalize_whitespace(metric_name) or "work24_suspicious_positive_count"
+
+    iterations: list[dict[str, object]] = []
+    consecutive_zero_passes = 0
+    final_metric_value = 0
+
+    try:
+        for iteration in range(1, max_iterations + 1):
+            discover_summary = discover_work24_population_candidates_pipeline(project_root)
+            audit_summary = audit_work24_population_pipeline(project_root)
+            final_metric_value = int(audit_summary.get(metric_name, 0))
+            if final_metric_value == 0:
+                consecutive_zero_passes += 1
+            else:
+                consecutive_zero_passes = 0
+            iterations.append(
+                {
+                    "iteration": iteration,
+                    "candidate_count": int(discover_summary.get("stored_work24_population_candidate_count", 0)),
+                    "job_count": int(discover_summary.get("stored_work24_population_job_count", 0)),
+                    "metric_value": final_metric_value,
+                    "metric_name": metric_name,
+                    "reason_counts": dict(audit_summary.get("work24_suspicious_positive_reason_counts", {})),
+                    "blank_role_counts": dict(audit_summary.get("work24_strong_target_blank_role_counts", {})),
+                }
+            )
+            if consecutive_zero_passes >= stable_passes:
+                break
+            if sleep_seconds and iteration < max_iterations:
+                time.sleep(sleep_seconds)
+
+        converged = final_metric_value == 0 and consecutive_zero_passes >= stable_passes
+        latest_audit = audit_work24_population(paths)
+        summary = {
+            "converged": converged,
+            "work24_convergence_metric_name": metric_name,
+            "work24_convergence_metric_value": int(latest_audit.get(metric_name, final_metric_value)),
+            "work24_convergence_required_stable_passes": stable_passes,
+            "work24_convergence_zero_passes": consecutive_zero_passes,
+            "work24_convergence_iteration_count": int(len(iterations)),
+            "work24_convergence_iterations": iterations,
+            "work24_population_candidate_count": int(latest_audit.get("work24_population_candidate_count", 0)),
+            "work24_population_job_count": int(latest_audit.get("work24_population_job_count", 0)),
+            "work24_population_role_hint_job_count": int(latest_audit.get("work24_population_role_hint_job_count", 0)),
+            "work24_suspicious_positive_count": int(latest_audit.get("work24_suspicious_positive_count", 0)),
+            "work24_candidate_noise_count": int(latest_audit.get("work24_candidate_noise_count", 0)),
+            "work24_strong_target_blank_count": int(latest_audit.get("work24_strong_target_blank_count", 0)),
+            "work24_strong_target_blank_role_counts": dict(
+                latest_audit.get("work24_strong_target_blank_role_counts", {})
+            ),
+            "work24_suspicious_positive_reason_counts": dict(
+                latest_audit.get("work24_suspicious_positive_reason_counts", {})
+            ),
+            "work24_population_audit_artifact": latest_audit.get("work24_population_audit_artifact", ""),
+        }
+        _record_run(
+            paths,
+            "run-work24-convergence",
+            run_id,
+            started_at,
+            summary,
+            status="성공" if converged else "보류",
+        )
+        return summary
+    except Exception as exc:  # noqa: BLE001
+        _record_error(paths, "run-work24-convergence", run_id, exc)
+        raise
+
+
+def run_work24_improvement_pipeline(project_root: Path | None = None) -> dict:
+    paths = get_paths(project_root)
+    started_at = _now()
+    run_id = _run_id("run-work24-improvement")
+    try:
+        reuse_existing_population = (
+            _has_nonempty_csv(paths.work24_population_candidates_path)
+            and _has_nonempty_csv(paths.work24_population_jobs_path)
+        )
+        if reuse_existing_population:
+            initial_audit_summary = audit_work24_population_pipeline(project_root)
+            shadow_companies = read_csv_or_empty(paths.work24_population_shadow_companies_path)
+            work24_population_summary = {
+                "stored_work24_population_candidate_count": int(initial_audit_summary.get("work24_population_candidate_count", 0)),
+                "stored_work24_population_job_count": int(initial_audit_summary.get("work24_population_job_count", 0)),
+                "stored_work24_population_shadow_company_count": int(len(shadow_companies)),
+                "new_work24_population_candidate_count": int(initial_audit_summary.get("work24_population_candidate_count", 0)),
+                "new_work24_population_job_count": int(initial_audit_summary.get("work24_population_job_count", 0)),
+                "new_work24_population_shadow_company_count": int(len(shadow_companies)),
+                "work24_population_artifact": str(paths.work24_population_candidates_path),
+                "work24_population_jobs_artifact": str(paths.work24_population_jobs_path),
+                "work24_population_shadow_companies_artifact": str(paths.work24_population_shadow_companies_path),
+                "work24_population_audit_artifact": initial_audit_summary.get("work24_population_audit_artifact", str(paths.work24_population_audit_path)),
+                "work24_population_reuse_mode": "existing_artifacts",
+            }
+        else:
+            work24_population_summary = discover_work24_population_candidates_pipeline(project_root)
+            initial_audit_summary = audit_work24_population_pipeline(project_root)
+
+        convergence_summary = {}
+        for label, metric_name in (
+            ("suspicious_positive", "work24_suspicious_positive_count"),
+            ("strong_target_blank", "work24_strong_target_blank_count"),
+        ):
+            metric_value = int(initial_audit_summary.get(metric_name, 0))
+            if metric_value == 0:
+                convergence_summary[label] = {
+                    "converged": True,
+                    "work24_convergence_metric_name": metric_name,
+                    "work24_convergence_metric_value": 0,
+                    "work24_convergence_required_stable_passes": 1,
+                    "work24_convergence_zero_passes": 1,
+                    "work24_convergence_iteration_count": 0,
+                    "work24_convergence_iterations": [],
+                    "work24_population_candidate_count": int(initial_audit_summary.get("work24_population_candidate_count", 0)),
+                    "work24_population_job_count": int(initial_audit_summary.get("work24_population_job_count", 0)),
+                    "work24_population_role_hint_job_count": int(initial_audit_summary.get("work24_population_role_hint_job_count", 0)),
+                    "work24_suspicious_positive_count": int(initial_audit_summary.get("work24_suspicious_positive_count", 0)),
+                    "work24_candidate_noise_count": int(initial_audit_summary.get("work24_candidate_noise_count", 0)),
+                    "work24_strong_target_blank_count": int(initial_audit_summary.get("work24_strong_target_blank_count", 0)),
+                    "work24_strong_target_blank_role_counts": dict(
+                        initial_audit_summary.get("work24_strong_target_blank_role_counts", {})
+                    ),
+                    "work24_suspicious_positive_reason_counts": dict(
+                        initial_audit_summary.get("work24_suspicious_positive_reason_counts", {})
+                    ),
+                    "work24_population_audit_artifact": initial_audit_summary.get("work24_population_audit_artifact", ""),
+                }
+            else:
+                convergence_summary[label] = run_work24_convergence_pipeline(
+                    project_root,
+                    metric_name=metric_name,
+                    max_iterations=3,
+                    stable_passes=1,
+                )
+        published_registry = read_csv_or_empty(paths.source_registry_path, SOURCE_REGISTRY_COLUMNS)
+        published_work24_summary = _work24_registry_summary(published_registry)
+        source_discovery_gap = _work24_source_discovery_gap(paths, published_registry)
+        target_work24_source_count = int(work24_population_summary.get("stored_work24_population_candidate_count", 0))
+        needs_source_discovery = bool(source_discovery_gap.get("work24_missing_source_count", 0))
+        if not needs_source_discovery and int(source_discovery_gap.get("work24_expected_source_count", 0)) == 0:
+            needs_source_discovery = int(published_work24_summary.get("work24_source_count", 0)) < target_work24_source_count
+
+        if _has_nonempty_csv(paths.companies_registry_path):
+            existing_companies = read_csv_or_empty(paths.companies_registry_path)
+            company_expansion_summary = {
+                "discovered_company_count": int(len(existing_companies)),
+                "candidate_input_mode": "existing_companies_registry",
+            }
+        else:
+            company_expansion_summary = discover_companies_pipeline(project_root)
+
+        if needs_source_discovery:
+            source_discovery_summary = discover_sources_pipeline(project_root)
+            refreshed_registry = read_csv_or_empty(paths.source_registry_path, SOURCE_REGISTRY_COLUMNS)
+            source_discovery_gap = _work24_source_discovery_gap(paths, refreshed_registry)
+        else:
+            source_discovery_summary = {
+                **_summarize_source_bucket_frame(published_registry, mode="published_source_registry"),
+                **source_discovery_gap,
+                "work24_registry_reuse_mode": "published_source_registry",
+            }
+            refreshed_registry = published_registry
+
+        work24_registry = _work24_registry_frame(refreshed_registry)
+        activation_summary = update_incremental_pipeline(
+            project_root,
+            allow_source_discovery_fallback=False,
+            enable_source_scan_progress=False,
+            registry_frame=work24_registry,
+        )
+        promotion_summary = promote_staging_pipeline(project_root)
+
+        refreshed_registry = read_csv_or_empty(paths.source_registry_path, SOURCE_REGISTRY_COLUMNS)
+        staging = read_csv_or_empty(paths.staging_jobs_path, JOB_COLUMNS)
+        master = read_csv_or_empty(paths.master_jobs_path, JOB_COLUMNS)
+
+        report = {
+            "completed": bool(
+                convergence_summary["suspicious_positive"].get("converged")
+                and convergence_summary["strong_target_blank"].get("converged")
+                and bool(activation_summary.get("quality_gate_passed", False))
+                and bool(promotion_summary.get("quality_gate_passed", False))
+                and int(promotion_summary.get("promoted_job_count", 0)) > 0
+            ),
+            "run_id": run_id,
+            "started_at": started_at,
+            "completed_at": _now(),
+            "convergence": convergence_summary,
+            "work24_population": work24_population_summary,
+            "company_expansion": {
+                "expanded_candidate_company_count": int(company_expansion_summary.get("discovered_company_count", 0)),
+                "candidate_input_mode": company_expansion_summary.get("candidate_input_mode", ""),
+            },
+            "source_discovery": {
+                **source_discovery_summary,
+                **source_discovery_gap,
+                **_work24_registry_summary(refreshed_registry),
+            },
+            "activation": activation_summary,
+            "promotion": promotion_summary,
+            "staging": _work24_job_summary(staging),
+            "master": _work24_job_summary(master),
+            "artifacts": {
+                "work24_population_audit": str(paths.work24_population_audit_path),
+                "work24_population_candidates": str(paths.work24_population_candidates_path),
+                "work24_population_jobs": str(paths.work24_population_jobs_path),
+                "work24_population_shadow_companies": str(paths.work24_population_shadow_companies_path),
+                "source_registry": str(paths.source_registry_path),
+                "staging_jobs": str(paths.staging_jobs_path),
+                "master_jobs": str(paths.master_jobs_path),
+                "work24_improvement_report": str(paths.work24_improvement_report_path),
+            },
+        }
+        paths.work24_improvement_report_path.write_text(
+            json.dumps(report, ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+        _record_run(
+            paths,
+            "run-work24-improvement",
+            run_id,
+            started_at,
+            report,
+            status="성공" if report["completed"] else "보류",
+        )
+        return report
+    except Exception as exc:  # noqa: BLE001
+        _record_error(paths, "run-work24-improvement", run_id, exc)
+        raise
+
+
 def expand_company_candidates_pipeline(project_root: Path | None = None) -> dict:
     paths = get_paths(project_root)
     started_at = _now()
@@ -940,10 +1325,11 @@ def update_incremental_pipeline(
         snapshot_date = _today()
         prioritized_registry = registry.copy()
         active_source_urls = _active_source_urls(baseline)
-        if active_source_urls and "source_url" in prioritized_registry.columns:
-            prioritized_registry["_always_refresh_source"] = (
-                prioritized_registry["source_url"].fillna("").astype(str).map(normalize_whitespace).isin(active_source_urls)
-            )
+        priority_seed_urls = _work24_priority_seed_source_urls(prioritized_registry)
+        if "source_url" in prioritized_registry.columns:
+            normalized_source_urls = prioritized_registry["source_url"].fillna("").astype(str).map(normalize_whitespace)
+            prioritized_registry["_always_refresh_source"] = normalized_source_urls.isin(active_source_urls)
+            prioritized_registry["_priority_seed_source"] = normalized_source_urls.isin(priority_seed_urls)
         new_jobs, raw_records, updated_registry, summary = collect_jobs_from_sources(
             prioritized_registry,
             paths,

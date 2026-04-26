@@ -69,6 +69,7 @@ from jobs_market_v2.html_utils import clean_html_text, extract_sections_from_des
 from jobs_market_v2.models import GateResult
 from jobs_market_v2.network import build_timeout
 from jobs_market_v2.pipelines import (
+    audit_work24_population_pipeline,
     collect_company_seed_records_pipeline,
     collect_jobs_pipeline,
     collect_company_evidence_pipeline,
@@ -76,6 +77,7 @@ from jobs_market_v2.pipelines import (
     discover_companies_pipeline,
     discover_sources_pipeline,
     promote_staging_pipeline,
+    run_work24_convergence_pipeline,
     run_daily_tracking_pipeline,
     run_collection_cycle_pipeline,
     run_weekly_expansion_pipeline,
@@ -2859,6 +2861,128 @@ def test_fetch_work24_population_source_jobs_scans_beyond_collection_page_window
     assert [job["worknet_wanted_auth_no"] for job in jobs] == [f"K-FULL-{page}" for page in range(1, 8)]
 
 
+def test_fetch_work24_population_source_jobs_fans_out_pipe_delimited_keywords(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class Settings:
+        user_agent = "jobs-market-v2-test"
+        timeout_seconds = 20.0
+        connect_timeout_seconds = 5.0
+        ats_source_timeout_seconds = 10.0
+        ats_source_connect_timeout_seconds = 3.0
+        enable_gemini_fallback = False
+        gemini_html_listing_max_calls_per_run = 0
+        work24_population_max_pages_per_source = 20
+        work24_population_empty_page_stop_count = 1
+        work24_population_stale_page_stop_count = 2
+        work24_population_page_delay_seconds = 0
+        work24_population_keyword_fanout_max_terms = 8
+        work24_population_keyword_fanout_max_pages_per_term = 2
+
+    fetched_keywords: list[tuple[str, int]] = []
+    auth_map = {
+        "데이터 분석가": "K-FANOUT-ANALYST",
+        "SQL": "K-FANOUT-SQL",
+        "BI": "K-FANOUT-BI",
+    }
+
+    def fake_fetch_work24_public_html(url: str, settings, *, data: dict[str, str] | None = None) -> str:
+        assert data is not None
+        keyword = data["srcKeyword"]
+        page = int(data["currentPageNo"])
+        fetched_keywords.append((keyword, page))
+        if page > 1:
+            return "<table><tbody></tbody></table>"
+        auth_no = auth_map[keyword]
+        return f"""
+        <table><tbody><tr>
+          <td>
+            <input id="chkboxWantedAuthNo0" value="{auth_no}|VALIDATION|테스트기업|{keyword}"/>
+            <a data-emp-detail href="/wk/a/b/1500/empDetailAuthView.do?wantedAuthNo={auth_no}&amp;infoTypeCd=VALIDATION&amp;infoTypeGroup=tb_workinfoworknet">{keyword}</a>
+          </td>
+          <td><ul class="emp_info_dtl"><li class="member">경력</li><li class="site">서울</li></ul></td>
+        </tr></tbody></table>
+        """
+
+    monkeypatch.setattr(collection_module, "_fetch_work24_public_html", fake_fetch_work24_public_html)
+
+    jobs = discovery_module._fetch_work24_population_source_jobs(
+        "https://www.work24.go.kr/wk/a/b/1200/retriveDtlEmpSrchList.do?srcKeyword=%EB%8D%B0%EC%9D%B4%ED%84%B0+%EB%B6%84%EC%84%9D%EA%B0%80%7CSQL%7CBI&resultCnt=50&pageLimit=5&scanDepth=20",
+        Settings(),
+    )
+
+    assert [job["work24_population_query"] for job in jobs] == ["데이터 분석가", "SQL", "BI"]
+    assert [job["worknet_wanted_auth_no"] for job in jobs] == [
+        "K-FANOUT-ANALYST",
+        "K-FANOUT-SQL",
+        "K-FANOUT-BI",
+    ]
+    assert fetched_keywords == [
+        ("데이터 분석가", 1),
+        ("데이터 분석가", 2),
+        ("SQL", 1),
+        ("SQL", 2),
+        ("BI", 1),
+        ("BI", 2),
+    ]
+
+
+def test_fetch_work24_population_source_jobs_fanout_uses_scan_depth_when_page_limit_is_one(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class Settings:
+        user_agent = "jobs-market-v2-test"
+        timeout_seconds = 20.0
+        connect_timeout_seconds = 5.0
+        ats_source_timeout_seconds = 10.0
+        ats_source_connect_timeout_seconds = 3.0
+        enable_gemini_fallback = False
+        gemini_html_listing_max_calls_per_run = 0
+        work24_population_max_pages_per_source = 20
+        work24_population_empty_page_stop_count = 1
+        work24_population_stale_page_stop_count = 2
+        work24_population_page_delay_seconds = 0
+        work24_population_keyword_fanout_max_terms = 8
+        work24_population_keyword_fanout_max_pages_per_term = 5
+
+    fetched_keywords: list[tuple[str, int]] = []
+
+    def fake_fetch_work24_public_html(url: str, settings, *, data: dict[str, str] | None = None) -> str:
+        assert data is not None
+        keyword = data["srcKeyword"]
+        page = int(data["currentPageNo"])
+        fetched_keywords.append((keyword, page))
+        if page > 2:
+            return "<table><tbody></tbody></table>"
+        auth_no = f"K-FANOUT-SCAN-{keyword}-{page}"
+        return f"""
+        <table><tbody><tr>
+          <td>
+            <input id="chkboxWantedAuthNo0" value="{auth_no}|VALIDATION|테스트기업|{keyword}"/>
+            <a data-emp-detail href="/wk/a/b/1500/empDetailAuthView.do?wantedAuthNo={auth_no}&amp;infoTypeCd=VALIDATION&amp;infoTypeGroup=tb_workinfoworknet">{keyword}</a>
+          </td>
+          <td><ul class="emp_info_dtl"><li class="member">경력</li><li class="site">서울</li></ul></td>
+        </tr></tbody></table>
+        """
+
+    monkeypatch.setattr(collection_module, "_fetch_work24_public_html", fake_fetch_work24_public_html)
+
+    jobs = discovery_module._fetch_work24_population_source_jobs(
+        "https://www.work24.go.kr/wk/a/b/1200/retriveDtlEmpSrchList.do?srcKeyword=AI+엔지니어%7CMLOps&pageLimit=1&scanDepth=3&resultCnt=50",
+        Settings(),
+    )
+
+    assert [job["work24_population_query"] for job in jobs] == ["AI 엔지니어", "AI 엔지니어", "MLOps", "MLOps"]
+    assert fetched_keywords == [
+        ("AI 엔지니어", 1),
+        ("AI 엔지니어", 2),
+        ("AI 엔지니어", 3),
+        ("MLOps", 1),
+        ("MLOps", 2),
+        ("MLOps", 3),
+    ]
+
+
 def test_fetch_work24_population_source_jobs_records_empty_page_stop_log(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
@@ -2948,6 +3072,8 @@ def test_discover_work24_population_returns_job_level_population_artifact(
                 "worknet_wanted_auth_no": "K-POP-1",
                 "location": "서울",
                 "work24_public_page": "6",
+                "work24_population_query": "데이터 분석",
+                "work24_population_source_url": "https://www.work24.go.kr/wk/a/b/1200/retriveDtlEmpSrchList.do?srcKeyword=%EB%8D%B0%EC%9D%B4%ED%84%B0+%EB%B6%84%EC%84%9D",
             },
             {
                 "company_name_hint": "일반물류회사",
@@ -2967,6 +3093,7 @@ def test_discover_work24_population_returns_job_level_population_artifact(
     assert companies["company_name"].tolist() == ["전체데이터랩"]
     assert jobs["worknet_wanted_auth_no"].tolist() == ["K-POP-1", "K-POP-2"]
     assert jobs.iloc[0]["population_page"] == "6"
+    assert jobs.iloc[0]["population_query"] == "데이터 분석"
     assert jobs.iloc[0]["population_role_hint"] == "데이터 분석가"
     assert summary["work24_population_job_count"] == 2
     assert summary["work24_population_candidate_count"] == 1
@@ -3045,6 +3172,448 @@ def test_work24_population_role_hint_prefers_current_classifier_over_llm_suggest
     }
 
     assert discovery_module._work24_population_role_hint(source_record, job) == "데이터 분석가"
+
+
+def test_work24_population_role_hint_salvages_ai_engineer_from_query_and_title() -> None:
+    source_record = {
+        "source_name": "고용24 공개 채용검색 - 인공지능 엔지니어",
+        "source_url": "https://www.work24.go.kr/wk/a/b/1200/retriveDtlEmpSrchList.do?srcKeyword=AI+%EC%84%9C%EB%B9%84%EC%8A%A4",
+    }
+    job = {
+        "company_name_hint": "주식회사 티이십일소프트",
+        "title": "AI 코딩/JAVA 개발자를 찾습니다. (신입/경력)",
+        "listing_context": "AI 서비스 개발자 채용",
+        "job_url": "https://www.work24.go.kr/wk/a/b/1500/empDetailAuthView.do?wantedAuthNo=K-AI-ENG",
+        "work24_population_query": "AI 서비스",
+    }
+
+    assert discovery_module._work24_population_role_hint(source_record, job) == "인공지능 엔지니어"
+
+
+def test_work24_population_role_hint_keeps_marketing_noise_blank() -> None:
+    source_record = {
+        "source_name": "고용24 공개 채용검색 - 인공지능 엔지니어",
+        "source_url": "https://www.work24.go.kr/wk/a/b/1200/retriveDtlEmpSrchList.do?srcKeyword=AI+%EC%84%9C%EB%B9%84%EC%8A%A4",
+    }
+    job = {
+        "company_name_hint": "주식회사 굿필마케팅",
+        "title": "병원 브랜딩 마케팅을 꿈꾸는 당신의 열정을 찾습니다.",
+        "listing_context": "",
+        "job_url": "https://www.work24.go.kr/wk/a/b/1500/empDetailAuthView.do?wantedAuthNo=K-AI-MKT",
+        "work24_population_query": "AI 서비스",
+    }
+
+    assert discovery_module._work24_population_role_hint(source_record, job) == ""
+
+
+def test_work24_population_role_hint_salvages_ai_researcher_from_query_and_title() -> None:
+    source_record = {
+        "source_name": "고용24 공개 채용검색 - 인공지능 리서처",
+        "source_url": "https://www.work24.go.kr/wk/a/b/1200/retriveDtlEmpSrchList.do?srcKeyword=AI+%EC%97%B0%EA%B5%AC%EC%9B%90",
+    }
+    job = {
+        "company_name_hint": "한국과학기술원부설고등과학원",
+        "title": "AI기초과학센터 AI 펠로우 채용 공고",
+        "listing_context": "AI 연구 과제 수행",
+        "job_url": "https://www.work24.go.kr/wk/a/b/1500/empDetailAuthView.do?wantedAuthNo=K-AI-RES",
+        "work24_population_query": "인공지능 연구원",
+    }
+
+    assert discovery_module._work24_population_role_hint(source_record, job) == "인공지능 리서처"
+
+
+def test_work24_population_role_hint_drops_generic_research_false_positive() -> None:
+    source_record = {
+        "source_name": "고용24 공개 채용검색 - 데이터 분석가",
+        "source_url": "https://www.work24.go.kr/wk/a/b/1200/retriveDtlEmpSrchList.do?srcKeyword=%EB%8D%B0%EC%9D%B4%ED%84%B0+%EB%B6%84%EC%84%9D",
+    }
+    job = {
+        "company_name_hint": "탑이앤씨주식회사",
+        "title": "연구원 모집공고",
+        "listing_context": "연구원 모집공고 / 탑이앤씨주식회사 / 경력4년",
+        "job_url": "https://www.work24.go.kr/wk/a/b/1500/empDetailAuthView.do?wantedAuthNo=K-FP-RESEARCH",
+        "work24_population_query": "데이터 분석",
+    }
+
+    assert discovery_module._work24_population_role_hint(source_record, job) == ""
+
+
+def test_work24_population_role_hint_prefers_ai_engineer_over_analyst_when_ai_delivery_is_explicit() -> None:
+    source_record = {
+        "source_name": "고용24 공개 채용검색 - 인공지능 엔지니어",
+        "source_url": "https://www.work24.go.kr/wk/a/b/1200/retriveDtlEmpSrchList.do?srcKeyword=AI+%EC%97%94%EC%A7%80%EB%8B%88%EC%96%B4",
+    }
+    job = {
+        "company_name_hint": "두레팜",
+        "title": "데이터 분석 및 AI 개발을 총괄하는 능력 있는 개발자를 찾습니다.",
+        "listing_context": "AI 개발자 채용",
+        "job_url": "https://www.work24.go.kr/wk/a/b/1500/empDetailAuthView.do?wantedAuthNo=K-AI-OVERRIDE",
+        "work24_population_query": "AI 엔지니어",
+    }
+
+    assert discovery_module._work24_population_role_hint(source_record, job) == "인공지능 엔지니어"
+
+
+def test_work24_population_role_hint_drops_generic_ai_frontend_backend_false_positive() -> None:
+    source_record = {
+        "source_name": "고용24 공개 채용검색 - 인공지능 엔지니어",
+        "source_url": "https://www.work24.go.kr/wk/a/b/1200/retriveDtlEmpSrchList.do?srcKeyword=AI+%EC%84%9C%EB%B9%84%EC%8A%A4",
+    }
+    job = {
+        "company_name_hint": "주식회사 에이에프비",
+        "title": "AI 기반 스포츠 플랫폼 시제품 개발, 프론트엔드/백엔드/UI/UX 분야 전문가를 모집합니다.",
+        "listing_context": "",
+        "job_url": "https://www.work24.go.kr/wk/a/b/1500/empDetailAuthView.do?wantedAuthNo=K-FP-STACK",
+        "work24_population_query": "AI 서비스",
+    }
+
+    assert discovery_module._work24_population_role_hint(source_record, job) == ""
+
+
+def test_work24_population_role_hint_drops_web_developer_without_strong_ai_signal() -> None:
+    source_record = {
+        "source_name": "고용24 공개 채용검색 - 데이터 분석가",
+        "source_url": "https://www.work24.go.kr/wk/a/b/1200/retriveDtlEmpSrchList.do?srcKeyword=SQL",
+    }
+    job = {
+        "company_name_hint": "강한솔루션",
+        "title": "웹개발자 Ai 기반 MES 스마트공장 솔루션 개발",
+        "listing_context": "",
+        "job_url": "https://www.work24.go.kr/wk/a/b/1500/empDetailAuthView.do?wantedAuthNo=K-FP-WEBDEV",
+        "work24_population_query": "SQL",
+    }
+
+    assert discovery_module._work24_population_role_hint(source_record, job) == ""
+
+
+def test_work24_population_role_hint_drops_hardware_expert_false_positive() -> None:
+    source_record = {
+        "source_name": "고용24 공개 채용검색 - 인공지능 엔지니어",
+        "source_url": "https://www.work24.go.kr/wk/a/b/1200/retriveDtlEmpSrchList.do?srcKeyword=AI+%EC%97%94%EC%A7%80%EB%8B%88%EC%96%B4",
+    }
+    job = {
+        "company_name_hint": "주식회사 에이에프비",
+        "title": "AI 기반 스포츠 플랫폼 시제품 개발을 위한 하드웨어 전문가를 모집합니다.",
+        "listing_context": "",
+        "job_url": "https://www.work24.go.kr/wk/a/b/1500/empDetailAuthView.do?wantedAuthNo=K-FP-HW",
+        "work24_population_query": "AI 엔지니어",
+    }
+
+    assert discovery_module._work24_population_role_hint(source_record, job) == ""
+
+
+def test_work24_population_role_hint_drops_embedded_data_engineer_without_explicit_ai_signal() -> None:
+    source_record = {
+        "source_name": "고용24 공개 채용검색 - 인공지능 엔지니어",
+        "source_url": "https://www.work24.go.kr/wk/a/b/1200/retriveDtlEmpSrchList.do?srcKeyword=%EB%8D%B0%EC%9D%B4%ED%84%B0+%EC%97%94%EC%A7%80%EB%8B%88%EC%96%B4",
+    }
+    job = {
+        "company_name_hint": "주식회사 에스씨솔루션글로벌",
+        "title": "STM 32 펌웨어 엔지니어 및 임베디드 개발자",
+        "listing_context": "",
+        "job_url": "https://www.work24.go.kr/wk/a/b/1500/empDetailAuthView.do?wantedAuthNo=K-FP-EMBEDDED",
+        "work24_population_query": "데이터 엔지니어",
+    }
+
+    assert discovery_module._work24_population_role_hint(source_record, job) == ""
+
+
+def test_work24_population_role_hint_rescues_ai_researcher_title_under_engineer_query() -> None:
+    source_record = {
+        "source_name": "고용24 공개 채용검색 - 인공지능 엔지니어",
+        "source_url": "https://www.work24.go.kr/wk/a/b/1200/retriveDtlEmpSrchList.do?srcKeyword=AI+%EC%97%94%EC%A7%80%EB%8B%88%EC%96%B4",
+    }
+    job = {
+        "company_name_hint": "(주)아이씨디",
+        "title": "아이씨디 SW팀(디스플레이/반도체 부문, AI연구원) 인재 채용",
+        "listing_context": "",
+        "job_url": "https://www.work24.go.kr/wk/a/b/1500/empDetailAuthView.do?wantedAuthNo=K-RESEARCH-RESCUE",
+        "work24_population_query": "AI 엔지니어",
+    }
+
+    assert discovery_module._work24_population_role_hint(source_record, job) == "인공지능 리서처"
+
+
+def test_work24_population_role_hint_rescues_agentic_ai_expert() -> None:
+    source_record = {
+        "source_name": "고용24 공개 채용검색 - 인공지능 엔지니어",
+        "source_url": "https://www.work24.go.kr/wk/a/b/1200/retriveDtlEmpSrchList.do?srcKeyword=AI+%EC%97%94%EC%A7%80%EB%8B%88%EC%96%B4",
+    }
+    job = {
+        "company_name_hint": "에이티웨이주식회사",
+        "title": "RPA 및 Agentic AI 전문가를 찾습니다.",
+        "listing_context": "",
+        "job_url": "https://www.work24.go.kr/wk/a/b/1500/empDetailAuthView.do?wantedAuthNo=K-AGENTIC-RESCUE",
+        "work24_population_query": "AI 엔지니어",
+    }
+
+    assert discovery_module._work24_population_role_hint(source_record, job) == "인공지능 엔지니어"
+
+
+def test_work24_population_role_hint_rescues_ai_service_developer_with_backend_noise() -> None:
+    source_record = {
+        "source_name": "고용24 공개 채용검색 - 인공지능 엔지니어",
+        "source_url": "https://www.work24.go.kr/wk/a/b/1200/retriveDtlEmpSrchList.do?srcKeyword=AI+%EC%97%94%EC%A7%80%EB%8B%88%EC%96%B4",
+    }
+    job = {
+        "company_name_hint": "(주)엔클라우",
+        "title": "(채용대행) AI 서비스 개발자, 백엔드 개발자 및 보안엔지니어 모집",
+        "listing_context": "",
+        "job_url": "https://www.work24.go.kr/wk/a/b/1500/empDetailAuthView.do?wantedAuthNo=K-AI-SVC-RESCUE",
+        "work24_population_query": "AI 엔지니어",
+    }
+
+    assert discovery_module._work24_population_role_hint(source_record, job) == "인공지능 엔지니어"
+
+
+def test_work24_population_role_hint_rescues_model_development_statement() -> None:
+    source_record = {
+        "source_name": "고용24 공개 채용검색 - 인공지능 엔지니어",
+        "source_url": "https://www.work24.go.kr/wk/a/b/1200/retriveDtlEmpSrchList.do?srcKeyword=AI+%EC%97%94%EC%A7%80%EB%8B%88%EC%96%B4",
+    }
+    job = {
+        "company_name_hint": "(주)다원",
+        "title": "인공지능 모델 개발을 통해 미래를 선도하는 인재를 모집합니다.",
+        "listing_context": "",
+        "job_url": "https://www.work24.go.kr/wk/a/b/1500/empDetailAuthView.do?wantedAuthNo=K-MODEL-RESCUE",
+        "work24_population_query": "AI 엔지니어",
+    }
+
+    assert discovery_module._work24_population_role_hint(source_record, job) == "인공지능 엔지니어"
+
+
+def test_work24_population_role_hint_rescues_planning_and_development_ai_title() -> None:
+    source_record = {
+        "source_name": "고용24 공개 채용검색 - AI 서비스",
+        "source_url": "https://www.work24.go.kr/wk/a/b/1200/retriveDtlEmpSrchList.do?srcKeyword=AI+%EC%84%9C%EB%B9%84%EC%8A%A4",
+    }
+    job = {
+        "company_name_hint": "(주)아이단바이오",
+        "title": "인공지능 응용 서비스 기획 및 개발 인력 채용",
+        "listing_context": "",
+        "job_url": "https://www.work24.go.kr/wk/a/b/1500/empDetailAuthView.do?wantedAuthNo=K-PLAN-DEV-RESCUE",
+        "work24_population_query": "AI 서비스",
+    }
+
+    assert discovery_module._work24_population_role_hint(source_record, job) == "인공지능 엔지니어"
+
+
+def test_audit_work24_population_pipeline_counts_suspicious_positive_rows(sandbox_project: Path) -> None:
+    paths = ProjectPaths.from_root(sandbox_project)
+    write_csv(
+        pd.DataFrame(
+            [
+                {
+                    "worknet_wanted_auth_no": "K-FP-WEBDEV",
+                    "population_source_name": "고용24 공개 채용검색 - 데이터 분석가",
+                    "population_source_url": "https://www.work24.go.kr/wk/a/b/1200/retriveDtlEmpSrchList.do?srcKeyword=SQL",
+                    "population_page": "1",
+                    "population_query": "SQL",
+                    "population_role_hint": "인공지능 엔지니어",
+                    "title": "웹개발자 Ai 기반 MES 스마트공장 솔루션 개발",
+                    "company_name": "강한솔루션",
+                    "location": "경기",
+                    "experience_level": "신입",
+                    "job_url": "https://www.work24.go.kr/wk/a/b/1500/empDetailAuthView.do?wantedAuthNo=K-FP-WEBDEV",
+                    "listing_context": "",
+                    "work24_public_tracking_signal": "new",
+                    "work24_llm_target_hint": "",
+                    "work24_llm_suggested_role": "",
+                    "work24_llm_reason": "",
+                },
+                {
+                    "worknet_wanted_auth_no": "K-FP-HW",
+                    "population_source_name": "고용24 공개 채용검색 - 인공지능 엔지니어",
+                    "population_source_url": "https://www.work24.go.kr/wk/a/b/1200/retriveDtlEmpSrchList.do?srcKeyword=AI+%EC%97%94%EC%A7%80%EB%8B%88%EC%96%B4",
+                    "population_page": "1",
+                    "population_query": "AI 엔지니어",
+                    "population_role_hint": "인공지능 엔지니어",
+                    "title": "AI 기반 스포츠 플랫폼 시제품 개발을 위한 하드웨어 전문가를 모집합니다.",
+                    "company_name": "주식회사 에이에프비",
+                    "location": "경기",
+                    "experience_level": "경력무관",
+                    "job_url": "https://www.work24.go.kr/wk/a/b/1500/empDetailAuthView.do?wantedAuthNo=K-FP-HW",
+                    "listing_context": "",
+                    "work24_public_tracking_signal": "new",
+                    "work24_llm_target_hint": "",
+                    "work24_llm_suggested_role": "",
+                    "work24_llm_reason": "",
+                },
+                {
+                    "worknet_wanted_auth_no": "K-FP-EMBEDDED",
+                    "population_source_name": "고용24 공개 채용검색 - 인공지능 엔지니어",
+                    "population_source_url": "https://www.work24.go.kr/wk/a/b/1200/retriveDtlEmpSrchList.do?srcKeyword=%EB%8D%B0%EC%9D%B4%ED%84%B0+%EC%97%94%EC%A7%80%EB%8B%88%EC%96%B4",
+                    "population_page": "1",
+                    "population_query": "데이터 엔지니어",
+                    "population_role_hint": "인공지능 엔지니어",
+                    "title": "STM 32 펌웨어 엔지니어 및 임베디드 개발자",
+                    "company_name": "주식회사 에스씨솔루션글로벌",
+                    "location": "경기",
+                    "experience_level": "경력무관",
+                    "job_url": "https://www.work24.go.kr/wk/a/b/1500/empDetailAuthView.do?wantedAuthNo=K-FP-EMBEDDED",
+                    "listing_context": "",
+                    "work24_public_tracking_signal": "new",
+                    "work24_llm_target_hint": "",
+                    "work24_llm_suggested_role": "",
+                    "work24_llm_reason": "",
+                },
+            ],
+            columns=list(WORK24_POPULATION_JOB_COLUMNS),
+        ),
+        paths.work24_population_jobs_path,
+    )
+    write_csv(
+        pd.DataFrame(
+            [
+                {
+                    "company_name": "강한솔루션",
+                    "company_tier": "중견/중소",
+                    "official_domain": "",
+                    "company_name_en": "",
+                    "region": "",
+                    "aliases": "",
+                    "discovery_method": "work24_population_discovery",
+                    "candidate_seed_type": "고용24공개채용검색",
+                    "candidate_seed_url": "https://www.work24.go.kr/wk/a/b/1500/empDetailAuthView.do?wantedAuthNo=K-FP-WEBDEV",
+                    "candidate_seed_title": "웹개발자 Ai 기반 MES 스마트공장 솔루션 개발",
+                    "candidate_seed_reason": "테스트",
+                },
+                {
+                    "company_name": "주식회사 에이에프비",
+                    "company_tier": "중견/중소",
+                    "official_domain": "",
+                    "company_name_en": "",
+                    "region": "",
+                    "aliases": "",
+                    "discovery_method": "work24_population_discovery",
+                    "candidate_seed_type": "고용24공개채용검색",
+                    "candidate_seed_url": "https://www.work24.go.kr/wk/a/b/1500/empDetailAuthView.do?wantedAuthNo=K-FP-HW",
+                    "candidate_seed_title": "AI 기반 스포츠 플랫폼 시제품 개발을 위한 하드웨어 전문가를 모집합니다.",
+                    "candidate_seed_reason": "테스트",
+                },
+                {
+                    "company_name": "주식회사 에스씨솔루션글로벌",
+                    "company_tier": "중견/중소",
+                    "official_domain": "",
+                    "company_name_en": "",
+                    "region": "",
+                    "aliases": "",
+                    "discovery_method": "work24_population_discovery",
+                    "candidate_seed_type": "고용24공개채용검색",
+                    "candidate_seed_url": "https://www.work24.go.kr/wk/a/b/1500/empDetailAuthView.do?wantedAuthNo=K-FP-EMBEDDED",
+                    "candidate_seed_title": "STM 32 펌웨어 엔지니어 및 임베디드 개발자",
+                    "candidate_seed_reason": "테스트",
+                },
+            ],
+            columns=list(IMPORT_COMPANY_COLUMNS),
+        ),
+        paths.work24_population_candidates_path,
+    )
+
+    summary = audit_work24_population_pipeline(project_root=sandbox_project)
+
+    assert summary["work24_suspicious_positive_count"] == 3
+    assert summary["work24_candidate_noise_count"] == 3
+    assert summary["work24_suspicious_positive_reason_counts"]["generic_dev_without_strong_ai"] == 1
+    assert summary["work24_suspicious_positive_reason_counts"]["hard_non_target_title"] == 1
+    assert summary["work24_suspicious_positive_reason_counts"]["missing_explicit_ai_signal"] == 1
+    assert Path(summary["work24_population_audit_artifact"]).exists()
+
+
+def test_audit_work24_population_pipeline_counts_strong_target_blank_rows(sandbox_project: Path) -> None:
+    paths = ProjectPaths.from_root(sandbox_project)
+    write_csv(
+        pd.DataFrame(
+            [
+                {
+                    "worknet_wanted_auth_no": "K-RESEARCH-RESCUE",
+                    "population_source_name": "고용24 공개 채용검색 - 인공지능 엔지니어",
+                    "population_source_url": "https://www.work24.go.kr/wk/a/b/1200/retriveDtlEmpSrchList.do?srcKeyword=AI+%EC%97%94%EC%A7%80%EB%8B%88%EC%96%B4",
+                    "population_page": "1",
+                    "population_query": "AI 엔지니어",
+                    "population_role_hint": "",
+                    "title": "아이씨디 SW팀(디스플레이/반도체 부문, AI연구원) 인재 채용",
+                    "company_name": "(주)아이씨디",
+                    "location": "경기",
+                    "experience_level": "신입",
+                    "job_url": "https://www.work24.go.kr/wk/a/b/1500/empDetailAuthView.do?wantedAuthNo=K-RESEARCH-RESCUE",
+                    "listing_context": "",
+                    "work24_public_tracking_signal": "new",
+                    "work24_llm_target_hint": "",
+                    "work24_llm_suggested_role": "",
+                    "work24_llm_reason": "",
+                },
+                {
+                    "worknet_wanted_auth_no": "K-AI-SVC-RESCUE",
+                    "population_source_name": "고용24 공개 채용검색 - 인공지능 엔지니어",
+                    "population_source_url": "https://www.work24.go.kr/wk/a/b/1200/retriveDtlEmpSrchList.do?srcKeyword=AI+%EC%97%94%EC%A7%80%EB%8B%88%EC%96%B4",
+                    "population_page": "1",
+                    "population_query": "AI 엔지니어",
+                    "population_role_hint": "",
+                    "title": "(채용대행) AI 서비스 개발자, 백엔드 개발자 및 보안엔지니어 모집",
+                    "company_name": "(주)엔클라우",
+                    "location": "서울",
+                    "experience_level": "경력무관",
+                    "job_url": "https://www.work24.go.kr/wk/a/b/1500/empDetailAuthView.do?wantedAuthNo=K-AI-SVC-RESCUE",
+                    "listing_context": "",
+                    "work24_public_tracking_signal": "new",
+                    "work24_llm_target_hint": "",
+                    "work24_llm_suggested_role": "",
+                    "work24_llm_reason": "",
+                },
+            ],
+            columns=list(WORK24_POPULATION_JOB_COLUMNS),
+        ),
+        paths.work24_population_jobs_path,
+    )
+    write_csv(pd.DataFrame(columns=list(IMPORT_COMPANY_COLUMNS)), paths.work24_population_candidates_path)
+
+    summary = audit_work24_population_pipeline(project_root=sandbox_project)
+
+    assert summary["work24_strong_target_blank_count"] == 2
+    assert summary["work24_strong_target_blank_role_counts"]["인공지능 리서처"] == 1
+    assert summary["work24_strong_target_blank_role_counts"]["인공지능 엔지니어"] == 1
+
+
+def test_work24_population_strong_target_blank_role_excludes_generic_frontend_backend_noise() -> None:
+    source_record = {
+        "source_name": "고용24 공개 채용검색 - 인공지능 엔지니어",
+        "source_url": "https://www.work24.go.kr/wk/a/b/1200/retriveDtlEmpSrchList.do?srcKeyword=AI+%EC%97%94%EC%A7%80%EB%8B%88%EC%96%B4",
+    }
+    job = {
+        "company_name_hint": "주식회사 에이에프비",
+        "title": "AI 기반 스포츠 플랫폼 시제품 개발, 프론트엔드/백엔드/UI/UX 분야 전문가를 모집합니다.",
+        "listing_context": "",
+        "job_url": "https://www.work24.go.kr/wk/a/b/1500/empDetailAuthView.do?wantedAuthNo=K-STACK-BLANK",
+        "work24_population_query": "AI 엔지니어",
+    }
+
+    assert discovery_module._work24_population_strong_target_blank_role(source_record, job) == ""
+
+
+def test_work24_population_strong_target_blank_role_excludes_manager_and_robot_sw_titles() -> None:
+    source_record = {
+        "source_name": "고용24 공개 채용검색 - 인공지능 엔지니어",
+        "source_url": "https://www.work24.go.kr/wk/a/b/1200/retriveDtlEmpSrchList.do?srcKeyword=AI+%EC%97%94%EC%A7%80%EB%8B%88%EC%96%B4",
+    }
+
+    manager_job = {
+        "company_name_hint": "주식회사 아스트라비전(ASTRA VISION INC.)",
+        "title": "김해 AI무역지원센터 운영 매니저 채용",
+        "listing_context": "",
+        "job_url": "https://www.work24.go.kr/wk/a/b/1500/empDetailAuthView.do?wantedAuthNo=K-MANAGER-BLANK",
+        "work24_population_query": "AI 플랫폼",
+    }
+    robot_job = {
+        "company_name_hint": "주식회사 원오토메이션",
+        "title": "ROS기반 ROBOT SW 엔지니어",
+        "listing_context": "",
+        "job_url": "https://www.work24.go.kr/wk/a/b/1500/empDetailAuthView.do?wantedAuthNo=K-ROBOT-BLANK",
+        "work24_population_query": "AI 엔지니어",
+    }
+
+    assert discovery_module._work24_population_strong_target_blank_role(source_record, manager_job) == ""
+    assert discovery_module._work24_population_strong_target_blank_role(source_record, robot_job) == ""
 
 
 def test_merge_updated_source_registry_drops_stale_work24_snapshot_sources() -> None:
@@ -8474,6 +9043,163 @@ def test_update_incremental_pipeline_with_subset_registry_preserves_full_source_
     assert summary["verified_source_success_count"] >= 1
 
 
+def test_update_incremental_pipeline_prioritizes_unverified_work24_seed_sources(
+    monkeypatch: pytest.MonkeyPatch,
+    sandbox_project: Path,
+) -> None:
+    paths = ProjectPaths.from_root(sandbox_project)
+    registry = pd.DataFrame(
+        [
+            {
+                "company_name": "기존회사",
+                "company_tier": "중견/중소",
+                "source_name": "기존 공식 채용",
+                "source_url": "https://existing.example/jobs",
+                "source_type": "html_page",
+                "official_domain": "existing.example",
+                "is_official_hint": True,
+                "structure_hint": "html",
+                "discovery_method": "manual_seed",
+                "source_bucket": "approved",
+                "screening_reason": "",
+                "verification_status": "성공",
+                "failure_count": 0,
+                "last_verified_at": "",
+                "last_success_at": "",
+                "last_active_job_count": 1,
+                "is_quarantined": False,
+                "quarantine_reason": "",
+            },
+            {
+                "company_name": "워크24회사",
+                "company_tier": "지역기업",
+                "source_name": "고용24 제한 공개보드 - 워크24회사",
+                "source_url": "https://www.work24.go.kr/wk/a/b/1200/retriveDtlEmpSrchList.do?srcKeyword=%EC%9B%8C%ED%81%AC24%ED%9A%8C%EC%82%AC&pageLimit=1&scanDepth=3",
+                "source_type": "work24_public_html",
+                "official_domain": "",
+                "is_official_hint": False,
+                "structure_hint": "limited_public_board",
+                "discovery_method": "work24_limited_public_board_fallback",
+                "source_bucket": "candidate",
+                "screening_reason": "",
+                "verification_status": "미검증",
+                "failure_count": 0,
+                "last_verified_at": "",
+                "last_success_at": "",
+                "last_active_job_count": 0,
+                "is_quarantined": False,
+                "quarantine_reason": "",
+            },
+        ],
+        columns=list(SOURCE_REGISTRY_COLUMNS),
+    )
+    write_csv(registry, paths.source_registry_path)
+
+    baseline = pd.DataFrame(
+        [
+            {
+                "job_key": "job-1",
+                "change_hash": "hash-1",
+                "first_seen_at": "2026-04-01T00:00:00+09:00",
+                "last_seen_at": "2026-04-01T00:00:00+09:00",
+                "is_active": True,
+                "missing_count": 0,
+                "snapshot_date": "2026-04-01",
+                "run_id": "baseline",
+                "source_url": "https://existing.example/jobs",
+                "source_bucket": "approved",
+                "source_name": "기존 공식 채용",
+                "company_name": "기존회사",
+                "company_tier": "중견/중소",
+                "job_url": "https://existing.example/jobs/1",
+                "job_title_raw": "데이터 분석가",
+                "experience_level_raw": "경력",
+                "job_role": "데이터 분석가",
+                "record_status": "유지",
+                "주요업무_분석용": "분석",
+                "자격요건_분석용": "SQL",
+                "우대사항_분석용": "",
+                "핵심기술_분석용": "",
+                "상세본문_분석용": "",
+                "회사명_표시": "기존회사",
+                "소스명_표시": "기존 공식 채용",
+                "공고제목_표시": "데이터 분석가",
+                "경력수준_표시": "경력",
+                "경력근거_표시": "",
+                "채용트랙_표시": "",
+                "채용트랙근거_표시": "",
+                "직무초점_표시": "",
+                "직무초점근거_표시": "",
+                "구분요약_표시": "",
+                "직무명_표시": "데이터 분석가",
+                "주요업무_표시": "분석",
+                "자격요건_표시": "SQL",
+                "우대사항_표시": "",
+                "핵심기술_표시": "",
+            }
+        ],
+        columns=list(JOB_COLUMNS),
+    )
+    write_csv(baseline, paths.master_jobs_path)
+
+    captured: dict[str, object] = {}
+
+    def fake_collect_jobs_from_sources(
+        source_registry,
+        paths_arg,
+        settings_arg,
+        *,
+        run_id,
+        snapshot_date,
+        collected_at,
+        enable_source_scan_progress=False,
+        enable_recruiter_ocr_recovery=False,
+    ):
+        captured["flags"] = source_registry[["source_url", "_always_refresh_source", "_priority_seed_source"]].copy()
+        summary = {
+            "collection_mode": "mock",
+            "collected_job_count": 0,
+            "verified_source_success_count": 0,
+            "verified_source_failure_count": 0,
+            "source_scan_mode": "incremental_cursor",
+            "total_collectable_source_count": len(source_registry),
+            "selected_collectable_source_count": len(source_registry),
+            "processed_collectable_source_count": len(source_registry),
+            "cursor_selected_collectable_source_count": len(source_registry),
+            "cursor_processed_collectable_source_count": len(source_registry),
+            "pinned_collectable_source_count": 0,
+            "deferred_collectable_source_count": 0,
+            "pending_collectable_source_count": 0,
+            "source_scan_start_offset": 0,
+            "source_scan_next_offset": 0,
+            "source_scan_completed_full_pass_count": 1,
+            "completed_full_source_scan": True,
+            "source_scan_runtime_budget_seconds": 0.0,
+            "source_scan_runtime_limited": False,
+            "source_scan_registry_signature_changed": False,
+            "source_scan_resume_strategy": "reset",
+        }
+        return (
+            pd.DataFrame(columns=list(JOB_COLUMNS)),
+            [],
+            source_registry.drop(columns=["_always_refresh_source", "_priority_seed_source"]),
+            summary,
+        )
+
+    monkeypatch.setattr(pipelines_module, "collect_jobs_from_sources", fake_collect_jobs_from_sources)
+
+    summary = update_incremental_pipeline(project_root=sandbox_project)
+
+    assert summary["completed_full_source_scan"] is True
+    flagged = captured["flags"]
+    existing_row = flagged[flagged["source_url"] == "https://existing.example/jobs"].iloc[0]
+    work24_row = flagged[flagged["source_url"].str.contains("work24.go.kr", regex=False)].iloc[0]
+    assert bool(existing_row["_always_refresh_source"]) is True
+    assert bool(existing_row["_priority_seed_source"]) is False
+    assert bool(work24_row["_always_refresh_source"]) is False
+    assert bool(work24_row["_priority_seed_source"]) is True
+
+
 def test_run_daily_tracking_pipeline_uses_published_registry_for_incremental_only(
     monkeypatch: pytest.MonkeyPatch,
     sandbox_project: Path,
@@ -11102,6 +11828,43 @@ def test_select_incremental_collectable_positions_always_include_forced_refresh_
     assert pinned_positions == [1]
 
 
+def test_select_incremental_collectable_positions_prioritize_seed_sources_outside_cursor() -> None:
+    rows = [
+        {
+            "source_url": "https://first.example/jobs",
+            "source_bucket": "candidate",
+            "source_type": "html_page",
+            "_always_refresh_source": False,
+            "_priority_seed_source": False,
+        },
+        {
+            "source_url": "https://second.example/jobs",
+            "source_bucket": "candidate",
+            "source_type": "html_page",
+            "_always_refresh_source": False,
+            "_priority_seed_source": False,
+        },
+        {
+            "source_url": "https://work24.example/jobs",
+            "source_bucket": "candidate",
+            "source_type": "work24_public_html",
+            "_always_refresh_source": False,
+            "_priority_seed_source": True,
+        },
+    ]
+
+    selected_positions, cursor_positions, pinned_positions = collection_module._select_incremental_collectable_positions(
+        [0, 1, 2],
+        rows,
+        start_offset=0,
+        process_limit=1,
+    )
+
+    assert selected_positions == [2]
+    assert cursor_positions == []
+    assert pinned_positions == [2]
+
+
 def _no_search_refresh_summary() -> dict[str, int | list]:
     return {
         "search_query_count": 0,
@@ -11160,6 +11923,321 @@ def test_run_collection_cycle_summary_exit_code_ignores_automation_ready() -> No
     assert cli_module._summary_exit_code("run-collection-cycle", {"automation_ready": True}) == 0
 
 
+def test_work24_convergence_summary_exit_codes() -> None:
+    assert cli_module._summary_exit_code("audit-work24-population", {"work24_suspicious_positive_count": 0}) == 0
+    assert cli_module._summary_exit_code("audit-work24-population", {"work24_suspicious_positive_count": 2}) == 1
+    assert cli_module._summary_exit_code("run-work24-convergence", {"converged": True}) == 0
+    assert cli_module._summary_exit_code("run-work24-convergence", {"converged": False}) == 1
+    assert cli_module._summary_exit_code("run-work24-improvement", {"completed": True}) == 0
+    assert cli_module._summary_exit_code("run-work24-improvement", {"completed": False}) == 1
+
+
+def test_run_work24_convergence_pipeline_stops_when_metric_reaches_zero(
+    monkeypatch: pytest.MonkeyPatch,
+    sandbox_project: Path,
+) -> None:
+    metric_values = iter([2, 1, 0])
+
+    monkeypatch.setattr(
+        pipelines_module,
+        "discover_work24_population_candidates_pipeline",
+        lambda project_root=None: {
+            "stored_work24_population_candidate_count": 28,
+            "stored_work24_population_job_count": 510,
+        },
+    )
+
+    def fake_audit_pipeline(project_root=None):
+        value = next(metric_values)
+        return {
+            "work24_suspicious_positive_count": value,
+            "work24_candidate_noise_count": value,
+            "work24_strong_target_blank_count": value,
+            "work24_strong_target_blank_role_counts": {"인공지능 엔지니어": value},
+            "work24_suspicious_positive_reason_counts": {"test_reason": value},
+            "work24_population_audit_artifact": str(ProjectPaths.from_root(sandbox_project).work24_population_audit_path),
+        }
+
+    monkeypatch.setattr(pipelines_module, "audit_work24_population_pipeline", fake_audit_pipeline)
+    monkeypatch.setattr(
+        pipelines_module,
+        "audit_work24_population",
+        lambda paths: {
+            "work24_suspicious_positive_count": 0,
+            "work24_candidate_noise_count": 0,
+            "work24_strong_target_blank_count": 0,
+            "work24_strong_target_blank_role_counts": {},
+            "work24_population_candidate_count": 28,
+            "work24_population_job_count": 510,
+            "work24_population_role_hint_job_count": 28,
+            "work24_suspicious_positive_reason_counts": {},
+            "work24_population_audit_artifact": str(paths.work24_population_audit_path),
+        },
+    )
+
+    summary = run_work24_convergence_pipeline(
+        project_root=sandbox_project,
+        metric_name="work24_strong_target_blank_count",
+        max_iterations=5,
+        stable_passes=1,
+    )
+
+    assert summary["converged"] is True
+    assert summary["work24_convergence_iteration_count"] == 3
+    assert summary["work24_convergence_metric_value"] == 0
+    assert summary["work24_convergence_metric_name"] == "work24_strong_target_blank_count"
+    assert summary["work24_population_candidate_count"] == 28
+
+
+def test_run_work24_improvement_pipeline_writes_completed_report(
+    monkeypatch: pytest.MonkeyPatch,
+    sandbox_project: Path,
+) -> None:
+    paths = ProjectPaths.from_root(sandbox_project)
+
+    registry = pd.DataFrame(
+        [
+            {
+                "company_name": "워크24회사",
+                "company_tier": "지역기업",
+                "source_name": "고용24 제한 공개보드 - 워크24회사",
+                "source_url": "https://www.work24.go.kr/wk/a/b/1200/retriveDtlEmpSrchList.do?srcKeyword=워크24회사",
+                "source_type": "work24_public_html",
+                "official_domain": "",
+                "is_official_hint": False,
+                "structure_hint": "limited_public_board",
+                "discovery_method": "work24_limited_public_board_fallback",
+                "source_bucket": "candidate",
+                "screening_reason": "",
+                "verification_status": "성공",
+                "failure_count": 0,
+                "last_verified_at": "",
+                "last_success_at": "2026-04-26T00:00:00+09:00",
+                "last_active_job_count": 2,
+                "is_quarantined": False,
+                "quarantine_reason": "",
+            }
+        ],
+        columns=list(SOURCE_REGISTRY_COLUMNS),
+    )
+    write_csv(registry, paths.source_registry_path)
+
+    master = pd.DataFrame(
+        [
+            {
+                "job_key": "job-1",
+                "change_hash": "hash-1",
+                "first_seen_at": "2026-04-26T00:00:00+09:00",
+                "last_seen_at": "2026-04-26T00:00:00+09:00",
+                "is_active": True,
+                "missing_count": 0,
+                "snapshot_date": "2026-04-26",
+                "run_id": "baseline",
+                "source_url": "https://www.work24.go.kr/wk/a/b/1200/retriveDtlEmpSrchList.do?srcKeyword=워크24회사",
+                "source_bucket": "candidate",
+                "source_name": "고용24 제한 공개보드 - 워크24회사",
+                "company_name": "워크24회사",
+                "company_tier": "지역기업",
+                "job_url": "https://www.work24.go.kr/job/1",
+                "job_title_raw": "AI 개발자",
+                "experience_level_raw": "경력",
+                "job_role": "인공지능 엔지니어",
+                "record_status": "신규",
+                "주요업무_분석용": "AI 개발",
+                "자격요건_분석용": "Python",
+                "우대사항_분석용": "",
+                "핵심기술_분석용": "",
+                "상세본문_분석용": "",
+                "회사명_표시": "워크24회사",
+                "소스명_표시": "고용24 제한 공개보드 - 워크24회사",
+                "공고제목_표시": "AI 개발자",
+                "경력수준_표시": "경력",
+                "경력근거_표시": "",
+                "채용트랙_표시": "",
+                "채용트랙근거_표시": "",
+                "직무초점_표시": "",
+                "직무초점근거_표시": "",
+                "구분요약_표시": "",
+                "직무명_표시": "인공지능 엔지니어",
+                "주요업무_표시": "AI 개발",
+                "자격요건_표시": "Python",
+                "우대사항_표시": "",
+                "핵심기술_표시": "",
+            }
+        ],
+        columns=list(JOB_COLUMNS),
+    )
+    write_csv(master, paths.master_jobs_path)
+    write_csv(master, paths.staging_jobs_path)
+
+    def fake_convergence(project_root=None, **kwargs):
+        metric_name = kwargs.get("metric_name", "work24_suspicious_positive_count")
+        return {
+            "converged": True,
+            "work24_convergence_metric_name": metric_name,
+            "work24_convergence_metric_value": 0,
+            "work24_population_candidate_count": 33,
+            "work24_population_job_count": 517,
+            "work24_population_role_hint_job_count": 35,
+            "work24_suspicious_positive_count": 0,
+            "work24_candidate_noise_count": 0,
+            "work24_strong_target_blank_count": 0,
+        }
+
+    monkeypatch.setattr(pipelines_module, "run_work24_convergence_pipeline", fake_convergence)
+    monkeypatch.setattr(
+        pipelines_module,
+        "discover_work24_population_candidates_pipeline",
+        lambda project_root=None: {"stored_work24_population_candidate_count": 33, "stored_work24_population_job_count": 517},
+    )
+    monkeypatch.setattr(
+        pipelines_module,
+        "discover_companies_pipeline",
+        lambda project_root=None: {"discovered_company_count": 2612, "candidate_input_mode": "work24_plus_registry"},
+    )
+    monkeypatch.setattr(
+        pipelines_module,
+        "discover_sources_pipeline",
+        lambda project_root=None: {"approved_source_count": 0, "candidate_source_count": 33, "rejected_source_count": 0, "screened_source_count": 717},
+    )
+    monkeypatch.setattr(
+        pipelines_module,
+        "update_incremental_pipeline",
+        lambda project_root=None, **kwargs: {
+            "quality_gate_passed": True,
+            "quality_gate_reasons": [],
+            "verified_source_success_count": 33,
+            "verified_source_failure_count": 0,
+            "collected_job_count": 20,
+            "staging_job_count": 250,
+            "new_job_count": 13,
+        },
+    )
+    monkeypatch.setattr(
+        pipelines_module,
+        "promote_staging_pipeline",
+        lambda project_root=None: {
+            "quality_gate_passed": True,
+            "quality_gate_reasons": [],
+            "dropped_low_quality_job_count": 0,
+            "promoted_job_count": 250,
+        },
+    )
+
+    summary = pipelines_module.run_work24_improvement_pipeline(project_root=sandbox_project)
+
+    assert summary["completed"] is True
+    assert summary["source_discovery"]["work24_source_count"] == 1
+    assert summary["master"]["work24_job_count"] == 1
+    report = json.loads(paths.work24_improvement_report_path.read_text(encoding="utf-8"))
+    assert report["completed"] is True
+    assert report["artifacts"]["work24_improvement_report"] == str(paths.work24_improvement_report_path)
+
+
+def test_run_work24_improvement_pipeline_rediscovers_when_expected_work24_source_url_is_missing(
+    monkeypatch: pytest.MonkeyPatch,
+    sandbox_project: Path,
+) -> None:
+    paths = ProjectPaths.from_root(sandbox_project)
+    paths.work24_population_candidates_path.write_text("candidate\n1\n", encoding="utf-8")
+    paths.work24_population_jobs_path.write_text(
+        "population_source_url\nhttps://www.work24.go.kr/wk/a/b/1200/retriveDtlEmpSrchList.do?srcKeyword=expected\n",
+        encoding="utf-8",
+    )
+
+    registry = pd.DataFrame(
+        [
+            {
+                "company_name": "워크24회사",
+                "company_tier": "지역기업",
+                "source_name": "고용24 제한 공개보드 - 워크24회사",
+                "source_url": "https://www.work24.go.kr/wk/a/b/1200/retriveDtlEmpSrchList.do?srcKeyword=unexpected",
+                "source_type": "work24_public_html",
+                "official_domain": "",
+                "is_official_hint": False,
+                "structure_hint": "limited_public_board",
+                "discovery_method": "work24_limited_public_board_fallback",
+                "source_bucket": "candidate",
+                "screening_reason": "",
+                "verification_status": "성공",
+                "failure_count": 0,
+                "last_verified_at": "",
+                "last_success_at": "2026-04-26T00:00:00+09:00",
+                "last_active_job_count": 1,
+                "is_quarantined": False,
+                "quarantine_reason": "",
+            }
+        ],
+        columns=list(SOURCE_REGISTRY_COLUMNS),
+    )
+    write_csv(registry, paths.source_registry_path)
+
+    monkeypatch.setattr(
+        pipelines_module,
+        "audit_work24_population_pipeline",
+        lambda project_root=None: {
+            "work24_population_candidate_count": 1,
+            "work24_population_job_count": 1,
+            "work24_population_role_hint_job_count": 1,
+            "work24_suspicious_positive_count": 0,
+            "work24_candidate_noise_count": 0,
+            "work24_strong_target_blank_count": 0,
+            "work24_strong_target_blank_role_counts": {},
+            "work24_suspicious_positive_reason_counts": {},
+            "work24_population_audit_artifact": str(paths.work24_population_audit_path),
+        },
+    )
+    monkeypatch.setattr(
+        pipelines_module,
+        "discover_companies_pipeline",
+        lambda project_root=None: {"discovered_company_count": 1, "candidate_input_mode": "existing_companies_registry"},
+    )
+
+    discover_calls = {"count": 0}
+
+    def fake_discover_sources(project_root=None):
+        discover_calls["count"] += 1
+        refreshed = registry.copy()
+        refreshed.loc[:, "source_url"] = "https://www.work24.go.kr/wk/a/b/1200/retriveDtlEmpSrchList.do?srcKeyword=expected"
+        write_csv(refreshed, paths.source_registry_path)
+        return {
+            "approved_source_count": 0,
+            "candidate_source_count": 1,
+            "rejected_source_count": 0,
+            "screened_source_count": 1,
+        }
+
+    monkeypatch.setattr(pipelines_module, "discover_sources_pipeline", fake_discover_sources)
+    monkeypatch.setattr(
+        pipelines_module,
+        "update_incremental_pipeline",
+        lambda project_root=None, **kwargs: {
+            "quality_gate_passed": True,
+            "quality_gate_reasons": [],
+            "verified_source_success_count": 1,
+            "verified_source_failure_count": 0,
+            "collected_job_count": 1,
+            "staging_job_count": 1,
+            "new_job_count": 1,
+        },
+    )
+    monkeypatch.setattr(
+        pipelines_module,
+        "promote_staging_pipeline",
+        lambda project_root=None: {
+            "quality_gate_passed": True,
+            "quality_gate_reasons": [],
+            "dropped_low_quality_job_count": 0,
+            "promoted_job_count": 1,
+        },
+    )
+
+    summary = pipelines_module.run_work24_improvement_pipeline(project_root=sandbox_project)
+
+    assert discover_calls["count"] == 1
+    assert summary["source_discovery"]["work24_missing_source_count"] == 0
+
+
 def test_github_actions_runtime_derives_bootstrap_hold_status() -> None:
     status = github_actions_runtime_module.derive_cycle_status(
         {
@@ -11182,6 +12260,41 @@ def test_github_actions_runtime_derives_bootstrap_hold_status() -> None:
     assert status.should_save_state is True
     assert status.is_failure is False
     assert status.is_recovered is False
+
+
+def test_github_actions_runtime_capture_work24_improvement_status_marks_incomplete_report_as_hold(tmp_path: Path) -> None:
+    report_path = tmp_path / "work24_improvement_report.json"
+    status_path = tmp_path / "github_workflow_cycle_status.json"
+    report_path.write_text(
+        json.dumps(
+            {
+                "completed": False,
+                "activation": {
+                    "quality_gate_passed": True,
+                    "quality_gate_reasons": [],
+                },
+                "promotion": {
+                    "quality_gate_passed": False,
+                    "quality_gate_reasons": ["work24_promotion_blocked"],
+                },
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+
+    status = github_actions_runtime_module.capture_work24_improvement_status(
+        report_path=report_path,
+        status_path=status_path,
+        exit_code=1,
+    )
+
+    assert status.hold_reason == "work24_improvement_incomplete"
+    assert status.promotion_block_reason == "work24_promotion_blocked"
+    assert status.automation_ready is False
+    assert status.is_failure is False
+    payload = json.loads(status_path.read_text(encoding="utf-8"))
+    assert payload["hold_reason"] == "work24_improvement_incomplete"
 
 
 def test_github_actions_runtime_capture_and_resolve_status_from_runtime_files(tmp_path: Path) -> None:

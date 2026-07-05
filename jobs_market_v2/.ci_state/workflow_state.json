@@ -1,9 +1,9 @@
 {
-  "updated_at": "2026-07-05T21:29:34.843743+00:00",
-  "consecutive_failures": 38,
+  "updated_at": "2026-07-05T23:30:26.613146+00:00",
+  "consecutive_failures": 39,
   "last_result": "failure",
   "hold_reason": "",
-  "run_url": "https://github.com/jlee-builds-org/Biz-Voyager/actions/runs/28755504840",
+  "run_url": "https://github.com/jlee-builds-org/Biz-Voyager/actions/runs/28758646851",
   "automation_status": {
     "timestamp": "2026-04-23T04:00:02+09:00",
     "last_successful_run_id": "build-coverage-report-20260423035900733973-cde09224",
